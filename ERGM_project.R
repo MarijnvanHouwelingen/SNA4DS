@@ -99,7 +99,7 @@ stemwijzer_df_clean <- stemwijzer_df[-c(3, 7, 10), ]
 # parties. This will make it easier to create an edge list and compare
 # whether two parties agree on a certain statement or not. 
 library(tidyr)
-library(tidyverse)
+library('tidyverse')
 library(dplyr)
 long_df <- stemwijzer_df_clean %>% pivot_longer(cols=colnames(.)[5:29],
                                                 names_to='party',
@@ -144,8 +144,7 @@ right_agreement_count <- stemwijzer_long_df %>%
 
 right_edge_list <- right_agreement_count %>%
   filter(count > 13) %>%
-  select(Party1, Party2)
-
+  select(Party1, Party2) 
 
 # Same approach for agreement count ####
 colnames(matrix_of_agreement) <- colnames(stemwijzer_df)[5:29]
@@ -172,18 +171,19 @@ agreement_count_ntwrks <- counts_of_agreement %>%
   mutate(more_2 = ifelse(count > 2, 1, 0)) %>%
   mutate(more_10 = ifelse(count > 10, 1, 0)) %>%
   mutate(more_15 = ifelse(count > 15, 1, 0)) %>%
-  mutate(more_20 = ifelse(count > 20, 1, 0))
+  mutate(more_20 = ifelse(count > 20, 1, 0)) 
 
+
+                        
 
 # Creating Networks ####
-node_attributes <- read.csv("node_attribute_partijen.csv", sep = ";")
+node_attributes <- read.csv("node_attribute_partijen.csv", sep = ",")
 
 # Transpose Node Attributes 
 node_attributes <- as.data.frame(t(node_attributes))
 colnames(node_attributes) <- node_attributes[1, ]
 node_attributes <- node_attributes[-1, ]
 node_attributes$Party <- rownames(node_attributes)
-
 node_attributes[1:7] <- lapply(node_attributes[1:7], as.numeric)
 
 
@@ -191,10 +191,11 @@ node_attributes[1:7] <- lapply(node_attributes[1:7], as.numeric)
 # Create a NodeList (keeping it unique) and Join Node Attributes
 NodeList <- unique(c(agreement_count_ntwrks$party2, agreement_count_ntwrks$party))
 NodeList_df <- as.data.frame(NodeList)
+
 colnames(NodeList_df)[1] <- 'Party'
 NodeList_attributes <- NodeList_df %>% 
   left_join(node_attributes, by = 'Party') %>%
-  mutate(zittend = ifelse((node_attributes$Seats_2021 > 0), 1, 0))
+  mutate(zittend = ifelse((node_attributes$Seats_2021 > 0), 1, 0)) %>% mutate(Age = 2023 - node_attributes$Year)
 
 # Making the right network for the ERGM study 
 right_network <- igraph::graph_from_data_frame(right_edge_list, 
@@ -216,21 +217,23 @@ right_network_netpackage <- snafun::add_vertex_attributes(right_network_netpacka
 
 # defining the vertex name
 right_network_netpackage <- snafun::add_vertex_names(right_network_netpackage,value = NodeList_attributes$Party)
-
 # checking the network attribute
 summary(right_network_netpackage)
-
+snafun::extract_all_vertex_attributes(right_network_netpackage)
 # summarize the statistics
 kstar <- summary(right_network_netpackage ~ kstar(1:12))
 kstar/sum(kstar)
 summary(right_network_netpackage ~ degree(1:10))
 summary(ergm::ergm(right_network_netpackage ~ edges))
-ergm1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("left_right") 
-                    + kstar(1:6) + degree(1:6) + isolates(),
+ergm1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
+                      nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") +
+                     gwdegree(0.2, fixed = TRUE) + gwdsp(0.2, fixed = TRUE) + isolates() + kstar(3) ,
                     control = ergm::control.ergm(MCMC.burnin = 5000,
                                                  MCMC.samplesize = 15000, seed = 234567, MCMLE.maxit = 20,
-                                                 parallel = 4, parallel.type = "PSOCK"
+                                                 parallel = 12
+                                                   , parallel.type = "PSOCK"
                     ))
+summary(ergm1)
 plot(right_network_netpackage)
 right_network_netpackage
 snafun::extract_all_vertex_attributes(right_network_netpackage)
