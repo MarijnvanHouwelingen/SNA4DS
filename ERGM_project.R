@@ -39,9 +39,9 @@ parties_short <- parties
 parties_short[c(19, 22, 23, 24)] <- c("PP/DGR","LP", "SvNLD", "NLmetPlan")
 parties_long <- parties
 parties_long[c(19, 22, 23, 24)] <- c("Piratenpartij...De.Groenen (PP/DGR)",
-                                 "Libertaire.Partij (LP)",
-                                 "Samen.voor.Nederland (SvNLD)",
-                                 "Nederland.met.een.Plan (NLmetPlan)")
+                                     "Libertaire.Partij (LP)",
+                                     "Samen.voor.Nederland (SvNLD)",
+                                     "Nederland.met.een.Plan (NLmetPlan)")
 
 # Plot a heatmap of the agreement matrix
 agreement_heatmap <- heatmap(
@@ -102,8 +102,8 @@ library(tidyr)
 library(tidyverse)
 library(dplyr)
 long_df <- stemwijzer_df_clean %>% pivot_longer(cols=colnames(.)[5:29],
-                               names_to='party',
-                               values_to='answer')
+                                                names_to='party',
+                                                values_to='answer')
 
 # Create unique pairs of political parties for each statement
 pairs_df <- long_df %>%
@@ -132,7 +132,7 @@ result_df <- left_join(result_df, statement_right, by = "Statement")
 stemwijzer_long_df <- result_df %>%
   mutate(agreement = ifelse(Value_Party1 == Value_Party2, 1, 0)) %>%
   mutate(right_agreement = ifelse((Right == 1 & Value_Party1 == 2 & 
-                                    Value_Party2 == 2), 1, 0)) %>%
+                                     Value_Party2 == 2), 1, 0)) %>%
   mutate(non_left_agreement = ifelse((Right == 0 & Value_Party1 == 0 & 
                                         Value_Party2 == 0), 1, 0))
 
@@ -174,6 +174,7 @@ agreement_count_ntwrks <- counts_of_agreement %>%
   mutate(more_15 = ifelse(count > 15, 1, 0)) %>%
   mutate(more_20 = ifelse(count > 20, 1, 0))
 
+
 # Creating Networks ####
 node_attributes <- read.csv("node_attribute_partijen.csv", sep = ";")
 
@@ -185,157 +186,7 @@ node_attributes$Party <- rownames(node_attributes)
 
 node_attributes[1:7] <- lapply(node_attributes[1:7], as.numeric)
 
-# Create a NodeList (keeping it unique) and Join Node Attributes
-NodeList <- unique(c(agreement_count_ntwrks$party2, agreement_count_ntwrks$party))
-NodeList_df <- as.data.frame(NodeList)
-colnames(NodeList_df)[1] <- 'Party'
-NodeList_attributes <- NodeList_df %>% 
-  left_join(node_attributes, by = 'Party') %>%
-  mutate(zittend = ifelse((node_attributes$Seats_2021 > 0), 1, 0))
 
-right_network <- igraph::graph_from_data_frame(right_edge_list, 
-                                               NodeList, directed = FALSE)
-plot(right_network)
-
-# Edge list
-EdgeList5 <- agreement_count_ntwrks %>%
-  filter(count > 4) %>%
-  select(party, party2)
-EdgeList10 <- agreement_count_ntwrks %>%
-    filter(count > 9) %>%
-    select(party, party2)
-EdgeList15 <- agreement_count_ntwrks %>%
-    filter(count > 14) %>%
-    select(party, party2)
-EdgeList16 <- agreement_count_ntwrks %>%
-  filter(count > 15) %>%
-  select(party, party2)
-EdgeList17 <- agreement_count_ntwrks %>%
-  filter(count > 16) %>%
-  select(party, party2)
-EdgeList18 <- agreement_count_ntwrks %>%
-  filter(count > 17) %>%
-  select(party, party2)
-EdgeList19 <- agreement_count_ntwrks %>%
-  filter(count > 18) %>%
-  select(party, party2)
-EdgeList20 <- agreement_count_ntwrks %>%
-    filter(count > 19) %>%
-    select(party, party2)
-EdgeList21 <- agreement_count_ntwrks %>%
-  filter(count > 20) %>%
-  select(party, party2)
-EdgeList22 <- agreement_count_ntwrks %>%
-  filter(count > 21) %>%
-  select(party, party2)
-EdgeList23 <- agreement_count_ntwrks %>%
-  filter(count > 22) %>%
-  select(party, party2)
-EdgeList24 <- agreement_count_ntwrks %>%
-  filter(count > 23) %>%
-  select(party, party2)
-EdgeList25 <- agreement_count_ntwrks %>%
-  filter(count > 24) %>%
-  select(party, party2)
-# Visualizing networks ####
-
-library(igraph)
-library(snafun)
-ntwrk5 <- igraph::graph_from_data_frame(EdgeList5, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk5)
-ntwrk10 <- igraph::graph_from_data_frame(EdgeList10, NodeList, directed = FALSE)%>%
-  to_network()
-plot(ntwrk10)
-ntwrk15 <- igraph::graph_from_data_frame(EdgeList15, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk15)
-ntwrk16 <- igraph::graph_from_data_frame(EdgeList16, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk16)
-ntwrk17 <- igraph::graph_from_data_frame(EdgeList17, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk17)
-ntwrk18 <- igraph::graph_from_data_frame(EdgeList18, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk18)
-ntwrk19 <- igraph::graph_from_data_frame(EdgeList19, NodeList, directed = FALSE) 
-plot(ntwrk19)
-ntwrk20 <- igraph::graph_from_data_frame(EdgeList20, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk20)
-ntwrk21 <- igraph::graph_from_data_frame(EdgeList21, NodeList, directed = FALSE) 
-plot(ntwrk21)
-ntwrk22 <- igraph::graph_from_data_frame(EdgeList22, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk22)
-ntwrk23 <- igraph::graph_from_data_frame(EdgeList23, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk23)
-ntwrk24 <- igraph::graph_from_data_frame(EdgeList24, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk24)
-ntwrk25 <- igraph::graph_from_data_frame(EdgeList25, NodeList, directed = FALSE) %>%
-  to_network()
-plot(ntwrk25)
-
-# Summary Statistics of Networks ####
-snafun::g_summary(ntwrk10)
-snafun::plot_centralities(ntwrk20)
-snafun::g_centralize(ntwrk20, measure = "betweenness")
-snafun::v_eccentricity(ntwrk20)
-
-# CUG Tests ####
-trans <- replicate(n = 2000,
-                   snafun::create_random_graph(n_vertices = 25, 
-                                               strategy = "gnm",
-                                               m = 55,
-                                               directed = FALSE,
-                                               graph = "network") |> 
-                     snafun::g_transitivity(),
-                   simplify = TRUE
-)
-## Transitivity ####
-plot(density(trans), main = "Empirical transitivity distribution", 
-     xlab = "transitivity")
-abline(v = snafun::g_transitivity(ntwrk5), lty = "dashed")
-snafun::g_transitivity(ntwrk20)
-
-## Centrality measures ####
-### Betweenness
-library(sna)
-library(snafun)
-betw_a <- function(x, directed = FALSE){  # note: directed = FALSE!
-  x <- snafun::fix_cug_input(x, directed = directed)
-  snafun::g_centralize(x, measure = "betweenness", directed = directed)$centralization
-}
-
-cug_agreement_betw <- sna::cug.test(ntwrk20, mode = "graph", FUN = betw_a, 
-                                 cmode = "edges", 
-                                 reps = 2000)
-cug_agreement_betw
-
-### Closeness
-close_a <- function(x, directed = FALSE) { 
-  x <- snafun::fix_cug_input(x, directed = directed)
-  snafun::g_centralize(x, measure = "closeness", directed = directed)$centralization
-}
-
-cug_agreement_close <- sna::cug.test(ntwrk17, mode = "graph", ## ntwrk16 significant
-                                 FUN = close_a, 
-                                 cmode = "edges", reps = 1000)
-cug_agreement_close
-
-### Degree
-degree_a <- function(x, directed = FALSE) {  # note: directed = FALSE!
-  x <- snafun::fix_cug_input(x, directed = directed)
-  snafun::g_centralize(x, measure = "degree", directed = directed)$centralization
-}
-
-cug_agreement_degree <- sna::cug.test(ntwrk20, mode = "graph", FUN = degree_a, 
-                                 cmode = "edges", 
-                                 reps = 1000)
-cug_agreement_degree
 
 # Create a NodeList (keeping it unique) and Join Node Attributes
 NodeList <- unique(c(agreement_count_ntwrks$party2, agreement_count_ntwrks$party))
@@ -375,11 +226,11 @@ kstar/sum(kstar)
 summary(right_network_netpackage ~ degree(1:10))
 summary(ergm::ergm(right_network_netpackage ~ edges))
 ergm1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("left_right") 
-           + kstar(1:6) + degree(1:6) + isolates(),
-           control = ergm::control.ergm(MCMC.burnin = 5000,
-             MCMC.samplesize = 15000, seed = 234567, MCMLE.maxit = 20,
-             parallel = 4, parallel.type = "PSOCK"
-           ))
+                    + kstar(1:6) + degree(1:6) + isolates(),
+                    control = ergm::control.ergm(MCMC.burnin = 5000,
+                                                 MCMC.samplesize = 15000, seed = 234567, MCMLE.maxit = 20,
+                                                 parallel = 4, parallel.type = "PSOCK"
+                    ))
 plot(right_network_netpackage)
 right_network_netpackage
 snafun::extract_all_vertex_attributes(right_network_netpackage)
