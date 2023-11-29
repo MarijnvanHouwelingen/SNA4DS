@@ -343,7 +343,7 @@ NodeList_df <- as.data.frame(NodeList)
 colnames(NodeList_df)[1] <- 'Party'
 NodeList_attributes <- NodeList_df %>% 
   left_join(node_attributes, by = 'Party') %>%
-  mutate(zittend = ifelse((node_attributes$Seats_2021 > 0), 1, 0))
+  mutate(zittend = ifelse((node_attributes$Seats_2021 > 0), 1, 0)) %>% mutate(Age = 2023 - node_attributes$Year)
 
 # Making the right network for the ERGM study 
 right_network <- igraph::graph_from_data_frame(right_edge_list, 
@@ -371,9 +371,36 @@ summary(right_network_netpackage)
 
 # summarize the statistics
 kstar <- summary(right_network_netpackage ~ kstar(1:12))
-kstar/sum(kstar)
-summary(right_network_netpackage ~ degree(1:10))
-summary(ergm::ergm(right_network_netpackage ~ edges))
+kstar
+summary(right_network_netpackage ~degree(1:10))
+plot(right_network_netpackage)
+snafun::g_summary(right_network_netpackage)
+
+
+
+# the exogenous models
+m0 <- ergm::ergm(right_network_netpackage ~ edges)
+m1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021"))
+m2 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2023"))
+m3 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Left_Right"))
+m4 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Age"))
+m5 <- ergm::ergm(right_network_netpackage ~ edges + nodefactor("is_coalition_2021"))
+m6 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023"))
+m7 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right"))
+m8 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right") + 
+                   nodecov("Age"))
+m9 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right") + 
+                   nodecov("Age") + nodefactor("is_coalition_2021"))
+
+
+# Get the summary of all models
+ texreg::texreg(list(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9))
+
+
+
+
+
+# the final ergm
 ergm1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("left_right") 
            + kstar(1:6) + degree(1:6) + isolates(),
            control = ergm::control.ergm(MCMC.burnin = 5000,
