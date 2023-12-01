@@ -1,5 +1,5 @@
 ## Load the data ####
-setwd("~/School/SNA4DS/Project")
+setwd("~/Documents/SNA4DS")
 rm(list=ls())
 # Loading in the data ####
 stemwijzer_df <- read.csv("Stemwijzer_Data_4_11 - data_16_11.csv")
@@ -99,7 +99,6 @@ stemwijzer_df_clean <- stemwijzer_df[-c(3, 7, 10), ]
 # parties. This will make it easier to create an edge list and compare
 # whether two parties agree on a certain statement or not. 
 library(tidyr)
-library('tidyverse')
 library(dplyr)
 long_df <- stemwijzer_df_clean %>% pivot_longer(cols=colnames(.)[5:29],
                                                 names_to='party',
@@ -223,7 +222,8 @@ snafun::extract_all_vertex_attributes(right_network_netpackage)
 # summarize the statistics
 kstar <- summary(right_network_netpackage ~ kstar(1:12))
 kstar/sum(kstar)
-summary(right_network_netpackage ~ degree(1:10))
+degree <- summary(right_network_netpackage ~ degree(1:10))
+degree/sum(degree)
 summary(ergm::ergm(right_network_netpackage ~ edges))
 
 #summary(ergm1) only with degree(3)
@@ -258,9 +258,9 @@ ergm3 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + n
                                                  , parallel.type = "PSOCK"
                     ))
 ergm::mcmc.diagnostics(ergm3)
-plot(ergm::gof(ergm3))
-summary(ergm3)
-
+ergm::gof(ergm3)
+sumerg3 <- summary(ergm3)
+texreg::texreg(list(ergm1,ergm2,ergm3))
 # isolates does not converge
 ergm4 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
                       nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + degree(0),
