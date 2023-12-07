@@ -227,55 +227,58 @@ degree/sum(degree)
 summary(ergm::ergm(right_network_netpackage ~ edges))
 
 #summary(ergm1) only with degree(3)
-ergm1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
-                      nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + degree(3),
+ergm1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right")
+                    + nodefactor("is_coalition_2021") + nodecov("Age") + gwdsp(0.2, fixed = TRUE),
                     control = ergm::control.ergm(MCMC.burnin = 5000,
                                                  MCMC.samplesize = 25000, seed = 234567, MCMLE.maxit = 20,
                                                  parallel = 12
                                                    , parallel.type = "PSOCK"
                     ))
 
+readr::write_rds(ergm1,"ergm1.rds")
 ergm::mcmc.diagnostics(ergm1)
 plot(ergm::gof(ergm1))
 
 # ergm2 the ergm model with only the gwdsp()
-ergm2 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
-                      nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + gwdsp(0.2, fixed = TRUE),
+ergm2 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right")
+                    + nodefactor("is_coalition_2021") + nodecov("Age") + gwesp(0.2, fixed = TRUE),
                     control = ergm::control.ergm(MCMC.burnin = 5000,
-                                                 MCMC.samplesize = 25000, seed = 234567, MCMLE.maxit = 20,
+                                                 MCMC.samplesize = 50000, seed = 234567, MCMLE.maxit = 30,
                                                  parallel = 12
                                                  , parallel.type = "PSOCK"
                     ))
+readr::write_rds(ergm2,"ergm2.rds")
 ergm::mcmc.diagnostics(ergm2)
 plot(ergm::gof(ergm2))
 
 # ergm3 both with degree and gwdsp good model
-ergm3 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
-                      nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + degree(3) + gwdsp(0.2, fixed = TRUE),
+ergm3 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023")+ nodecov("Left_Right")
+                    + nodefactor("is_coalition_2021") + nodecov("Age") + gwesp(0.2, fixed = TRUE) + gwdsp(0.2, fixed = TRUE),
                     control = ergm::control.ergm(MCMC.burnin = 5000,
-                                                 MCMC.samplesize = 50000, seed = 234567, MCMLE.maxit = 20,
+                                                 MCMC.samplesize = 50000, seed = 234567, MCMLE.maxit = 30,
                                                  parallel = 12
                                                  , parallel.type = "PSOCK"
                     ))
+readr::write_rds(ergm3,"ergm3.rds")
 ergm::mcmc.diagnostics(ergm3)
-ergm::gof(ergm3)
+plot(ergm::gof(ergm3))
 sumerg3 <- summary(ergm3)
-texreg::texreg(list(ergm1,ergm2,ergm3))
+texreg::screenreg(list(ergm1,ergm2,ergm3))
 # isolates does not converge
-ergm4 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
-                      nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + degree(0),
+ergm4 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023")+ nodecov("Left_Right") + 
+                      degree(3) + gwdsp(0.2, fixed = TRUE),
                     control = ergm::control.ergm(MCMC.burnin = 5000,
-                                                 MCMC.samplesize =10000, seed = 234567, MCMLE.maxit = 20,
+                                                 MCMC.samplesize =25000, seed = 234567, MCMLE.maxit = 20,
                                                  parallel = 12
                                                  , parallel.type = "PSOCK"
                     ))
-
+readr::write_rds(ergm4,"ergm4.rds")
 ergm::mcmc.diagnostics(ergm4)
 ergm::gof(ergm4)
 
-# kstar(4) does eventually converge
-ergm5 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
-                      nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + kstar(4),
+# degree + gwesp
+ergm5 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right")
+                    + nodefactor("is_coalition_2021") + nodecov("Age") + degree(3) + gwesp(0.2,fixed=TRUE),
                     control = ergm::control.ergm(MCMC.burnin = 5000,
                                                  MCMC.samplesize = 25000, seed = 234567, MCMLE.maxit = 20,
                                                  parallel = 12
@@ -285,30 +288,49 @@ ergm::mcmc.diagnostics(ergm4)
 ergm::gof(ergm4)
 
 # All hypothesis terms included in the model
-ergm6 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
-                      nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + degree(3) + 
+
+                    + nodefactor("is_coalition_2021") + nodecov("Age") + degree(3) + 
                       gwdsp(0.2, fixed = TRUE) + kstar(4),
                     control = ergm::control.ergm(MCMC.burnin = 2000,
                                                  MCMC.samplesize = 10000, seed = 234567, MCMLE.maxit = 20,
                                                  parallel = 12
                                                  , parallel.type = "PSOCK"
                     ))
+readr::write_rds(ergm6,"ergm6.rds")
 ergm::mcmc.diagnostics(ergm6)
 ergm::gof(ergm6)
 summary(ergm6)
 
-# ergm 7 with better gwwdsp
-
-ergm7 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + 
-  nodecov("Left_Right") + nodefactor("is_coalition_2021") + nodecov("Age") + degree(3) + gwdsp(0.2, fixed = TRUE) + gwesp(0.2, fixed = TRUE),
+ergm7 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right")
+                    + nodefactor("is_coalition_2021") + nodecov("Age") + gwdsp(0.2, fixed = TRUE) + gwesp(0.2, fixed = TRUE),
 control = ergm::control.ergm(MCMC.burnin = 5000,
                              MCMC.samplesize = 25000, seed = 234567, MCMLE.maxit = 20,
-                             parallel = 12
-                             , parallel.type = "PSOCK"
-))
-
+                    parallel 
 ergm::mcmc.diagnostics(ergm7)
 plot(ergm::gof(ergm7))
 plot(right_network_netpackage)
 right_network_netpackage
 snafun::extract_all_vertex_attributes(right_network_netpackage)
+
+# ergm with gwesp as sole term, to control for the (triadic closure)right parties in the network
+ergm8 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") 
+                    + nodefactor("is_coalition_2021") + nodecov("Age") +  gwesp(0.2, fixed = TRUE),
+                    control = ergm::control.ergm(MCMC.burnin = 5000,
+                                                 MCMC.samplesize = 25000, seed = 234567, MCMLE.maxit = 20,
+                                                 parallel = 12
+                                                 , parallel.type = "PSOCK"
+                    ))
+ergm::mcmc.diagnostics(ergm8)
+plot(ergm::gof(ergm8))
+summary(ergm8)
+
+ergm9 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") 
+                    + nodefactor("is_coalition_2021") + nodecov("Age") +  gwesp(0.2, fixed = TRUE) + gwdsp(0.2,fixed = TRUE),
+                    control = ergm::control.ergm(MCMC.burnin = 5000,
+                                                 MCMC.samplesize = 50000, seed = 234567, MCMLE.maxit = 30,
+                                                 parallel = 12
+                                                 , parallel.type = "PSOCK"
+                    ))
+ergm::mcmc.diagnostics(ergm9)
+plot(ergm::gof(ergm9))
+summary(ergm9)
