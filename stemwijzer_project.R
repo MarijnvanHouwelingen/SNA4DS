@@ -193,9 +193,8 @@ NodeList_attributes <- NodeList_df %>%
   left_join(node_attributes, by = 'Party') %>%
   mutate(zittend = ifelse((node_attributes$Seats_2021 > 0), 1, 0))
 
-right_network <- igraph::graph_from_data_frame(right_edge_list, 
-                                               NodeList, directed = FALSE)
-plot(right_network)
+
+
 
 # Edge list
 EdgeList5 <- agreement_count_ntwrks %>%
@@ -285,21 +284,112 @@ snafun::plot_centralities(ntwrk20)
 snafun::g_centralize(ntwrk20, measure = "betweenness")
 snafun::v_eccentricity(ntwrk20)
 
+# Right-Wing statement networks -- 20 EDGELISTS ####
+Right_Edge_1 <- right_agreement_count %>%
+  filter(count > 0) %>%
+  select(Party1, Party2)
+Right_Edge_2 <- right_agreement_count %>%
+  filter(count > 1) %>%
+  select(Party1, Party2)
+Right_Edge_3 <- right_agreement_count %>%
+  filter(count > 2) %>%
+  select(Party1, Party2)
+Right_Edge_4 <- right_agreement_count %>%
+  filter(count > 3) %>%
+  select(Party1, Party2)
+Right_Edge_5 <- right_agreement_count %>%
+  filter(count > 4) %>%
+  select(Party1, Party2)
+Right_Edge_6 <- right_agreement_count %>%
+  filter(count > 5) %>%
+  select(Party1, Party2)
+Right_Edge_7 <- right_agreement_count %>%
+  filter(count > 6) %>%
+  select(Party1, Party2)
+Right_Edge_8 <- right_agreement_count %>%
+  filter(count > 7) %>%
+  select(Party1, Party2)
+Right_Edge_9 <- right_agreement_count %>%
+  filter(count > 8) %>%
+  select(Party1, Party2)
+Right_Edge_10 <- right_agreement_count %>%
+  filter(count > 9) %>%
+  select(Party1, Party2)
+Right_Edge_11 <- right_agreement_count %>%
+  filter(count > 10) %>%
+  select(Party1, Party2)
+Right_Edge_12 <- right_agreement_count %>%
+  filter(count > 11) %>%
+  select(Party1, Party2)
+Right_Edge_13 <- right_agreement_count %>%
+  filter(count > 12) %>%
+  select(Party1, Party2)
+Right_Edge_14 <- right_agreement_count %>%
+  filter(count > 13) %>%
+  select(Party1, Party2)
+Right_Edge_15 <- right_agreement_count %>%
+  filter(count > 14) %>%
+  select(Party1, Party2)
+Right_Edge_16 <- right_agreement_count %>%
+  filter(count > 15) %>%
+  select(Party1, Party2)
+Right_Edge_17 <- right_agreement_count %>%
+  filter(count > 16) %>%
+  select(Party1, Party2)
+Right_Edge_18 <- right_agreement_count %>%
+  filter(count > 17) %>%
+  select(Party1, Party2)
+Right_Edge_19 <- right_agreement_count %>%
+  filter(count > 18) %>%
+  select(Party1, Party2)
+Right_Edge_20 <- right_agreement_count %>%
+  filter(count > 19) %>%
+  select(Party1, Party2)
+
+right_network <- igraph::graph_from_data_frame(Right_Edge_15, 
+                                               NodeList, directed = FALSE) %>%
+  to_network()
+
+agreement_network <- igraph::graph_from_data_frame(EdgeList20, 
+                                                   NodeList, directed = FALSE) %>%
+  to_network()
+
+
+
+plot(agreement_network, vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=1)
+
 # CUG Tests ####
 trans <- replicate(n = 2000,
                    snafun::create_random_graph(n_vertices = 25, 
                                                strategy = "gnm",
-                                               m = 55,
+                                               m = 33,
                                                directed = FALSE,
                                                graph = "network") |> 
                      snafun::g_transitivity(),
                    simplify = TRUE
 )
+readr::write_rds(trans,"trans.rds")
 ## Transitivity ####
 plot(density(trans), main = "Empirical transitivity distribution", 
-     xlab = "transitivity")
-abline(v = snafun::g_transitivity(ntwrk5), lty = "dashed")
-snafun::g_transitivity(ntwrk20)
+     xlab = "Transitivity", ylab = "Density", xlim = c(0,0.6))
+abline(v = snafun::g_transitivity(right_network), lty = "dashed", col = "red")
+snafun::g_transitivity(right_network)
+
+
+trans_a <- function(x, directed = FALSE) {  # note: directed = FALSE!
+  x <- snafun::fix_cug_input(x, directed = directed)
+  snafun::g_transitivity(x)
+}
+
+cug_agreement_trans <- sna::cug.test(right_network, mode = "graph", 
+                                     FUN = trans_a, 
+                                     cmode = "edges", reps = 2000)
+cug_agreement_trans
+
+sna::plot.cug.test(cug_agreement_betw)
+
 
 ## Centrality measures ####
 ### Betweenness
@@ -310,9 +400,9 @@ betw_a <- function(x, directed = FALSE){  # note: directed = FALSE!
   snafun::g_centralize(x, measure = "betweenness", directed = directed)$centralization
 }
 
-cug_agreement_betw <- sna::cug.test(ntwrk20, mode = "graph", FUN = betw_a, 
-                                 cmode = "edges", 
-                                 reps = 2000)
+cug_agreement_betw <- sna::cug.test(right_network, mode = "graph", FUN = betw_a, 
+                                    cmode = "edges", 
+                                    reps = 2000)
 cug_agreement_betw
 
 ### Closeness
@@ -321,9 +411,9 @@ close_a <- function(x, directed = FALSE) {
   snafun::g_centralize(x, measure = "closeness", directed = directed)$centralization
 }
 
-cug_agreement_close <- sna::cug.test(ntwrk17, mode = "graph", ## ntwrk16 significant
-                                 FUN = close_a, 
-                                 cmode = "edges", reps = 1000)
+cug_agreement_close <- sna::cug.test(agreement_network, mode = "graph", ## ntwrk16 significant
+                                     FUN = close_a, 
+                                     cmode = "edges", reps = 2000)
 cug_agreement_close
 
 ### Degree
@@ -332,10 +422,11 @@ degree_a <- function(x, directed = FALSE) {  # note: directed = FALSE!
   snafun::g_centralize(x, measure = "degree", directed = directed)$centralization
 }
 
-cug_agreement_degree <- sna::cug.test(ntwrk20, mode = "graph", FUN = degree_a, 
-                                 cmode = "edges", 
-                                 reps = 1000)
+cug_agreement_degree <- sna::cug.test(agreement_network, mode = "graph", FUN = degree_a, 
+                                      cmode = "edges", 
+                                      reps = 2000)
 cug_agreement_degree
+
 
 # Create a NodeList (keeping it unique) and Join Node Attributes
 NodeList <- unique(c(agreement_count_ntwrks$party2, agreement_count_ntwrks$party))
@@ -380,18 +471,27 @@ snafun::g_summary(right_network_netpackage)
 
 # the exogenous models
 m0 <- ergm::ergm(right_network_netpackage ~ edges)
+readr::write_rds(m0,"ergm1.1.rds")
 m1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021"))
+readr::write_rds(m1,"ergm1.2.rds")
 m2 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2023"))
+readr::write_rds(m2,"ergm1.3.rds")
 m3 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Left_Right"))
+readr::write_rds(m3,"ergm1.4.rds")
 m4 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Age"))
+readr::write_rds(m4,"ergm1.5.rds")
 m5 <- ergm::ergm(right_network_netpackage ~ edges + nodefactor("is_coalition_2021"))
+readr::write_rds(m5,"ergm1.6.rds")
 m6 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023"))
+readr::write_rds(m6,"ergm1.7.rds")
 m7 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right"))
+readr::write_rds(m7,"ergm1.8.rds")
 m8 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right") + 
                    nodecov("Age"))
+readr::write_rds(m8,"ergm1.9.rds")
 m9 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") + nodecov("Left_Right") + 
                    nodecov("Age") + nodefactor("is_coalition_2021"))
-
+readr::write_rds(m8,"ergm1.10.rds")
 
 # Get the summary of all models
  texreg::texreg(list(m0,m1,m2,m3,m4,m5,m6,m7,m8,m9))
