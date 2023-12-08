@@ -1,0 +1,1449 @@
+---
+title:  ""   
+subtitle: ""
+date: ""
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: false
+    number_sections: true
+    fig_caption: true
+header-includes:
+- \usepackage{float}
+- \usepackage{caption}
+link-citations: true
+---
+\begin{titlepage}
+  \centering
+  \vspace*{\fill}
+  {\huge\bfseries Harmony in The Hague: A Social Network Analysis Project Examining Agreement of Dutch Political Parties in Voting Advice Applications \par}
+  \vspace{0.5cm}
+  
+  {\Large Social Network Analysis for Data Scientists - Group 6\\
+  
+  \vspace{0.5cm}
+  
+  Floor Halkers\\
+  Eva Haverkort\\
+  Marijn van Houwelingen\\
+  Edde Janssen\\
+  Kyra Jongman\par}
+  
+  \vspace{0.5cm}
+  {\large 08-12-2023 \par}
+  
+  \vspace{0.5cm}
+  {\large Word count: 4923 \par}
+  \vspace*{\fill}
+\end{titlepage}
+
+\newpage
+
+**Executive Summary:** In contemporary Western democracies such as The Netherlands, there has been a significant increase in the use of Voting Advice Applications (VAAs) prior to elections to help voters navigate among all the possible options. Despite their popularity, VAAs are susceptible to strategic manipulation by political parties. In accordance with the median voter theorem, parties may strategically position themselves, thereby influencing the recommendations received by voters and showing a misalignment with their true ideological positions. Using the data from the StemWijzer VAA of the 2023 Dutch parliamentary elections, we perform Conditional Uniform Graph (CUG) tests and run Exponential Random Graph Models (ERGMs). Our findings reveal how many network configurations reveal patterns and clusters of agreement, while suggesting the possibility of strategic positioning in VAAs. Furthermore, we show that advances in social network analysis can be a promising approach to better understand the interconnected policy preferences of political parties, surpassing more conventional approaches such as the left-right scale or GAL-TAN dimension.
+
+\textsc{\textbf{Key words:} Social network analysis, Median voter theorem, Voting Advice Applications (VAAs), Conditional Uniform Graph (CUG) tests, Exponential Random Graph Models (ERGMs)}
+
+
+
+\newpage 
+
+\tableofcontents
+
+```{r include=FALSE}
+library(ggplot2)
+library(snafun)
+library(tidyr)
+library(dplyr)
+library(igraph)
+
+
+```
+
+
+\newpage
+
+# Introduction
+
+The right to vote and transparent information regarding party policy positions are essential to elections and a properly functioning democracy. In many Western societies with multiparty systems, there has been a shift in voting patterns due to the erosion of social class structures since the 1970s (Kamoen et al., 2015). This shift has inter alia resulted in a heightened voting volatility, votes that tend to revolve around one’s opinion on issues rather than one’s ideology or social class, as well as an overall growing demand for comprehensive information regarding political parties and their respective stances (Kamoen et al., 2015; Tromborg & Albertsen, 2023). 
+
+To help voters navigate their vote among all the possible options in a digital era, Voting Advice Applications (VAAs) have become an extremely popular online tool to make an informed decision that relates the party manifestos to their own policy preferences (Garzia & Marschall, 2015; Kleinnijenhuis et al., 2017). In the Netherlands, popular VAAs, such as StemWijzer, KiesKompas and MijnStem, are widely used by voters, with the StemWijzer of the past 2021 Parliamentary elections being filled out 7,8 million times, almost half of the Dutch population (ProDemos, 2021). Furthermore, various studies estimate that many voters use a VAA several days before the elections or on the election day itself, with estimates of citizens that let it influence their final vote being approximately 15% (Kamoen et al., 2015). Given this importance and potential influence on voters' decisions, parties want to ensure their (dis)agreement on VAA statements aligns as much as possible with their party values. 
+
+This, however, may also give rise to the complication that political parties decide to choose a strategic stance in these VAAs, aiming to target a wider range of possible voters. According to Raymond Mens and Julia Wouters, former communication strategist and media advisor of the VVD and PvdA – two major parties in the Dutch parliament – respectively, VAAs tend to be “a huge political game” which one should “take with a grain of salt” and “not entirely base their vote on” (De Spindoctors, 2023). To illustrate this misalignment between VAAs statements and true party ideologies, party A may change their statements based on what they deem most favorable in terms of targeting a wide range of voters, so that those doubting between party A and similar parties, end up being recommended party A (De Spindoctors, 2023). Furthermore, party manifestos may be written in such a way that one can agree or disagree with the respective statement, thereby allowing parties to choose the statement they deem most favorable in terms of what the majority or another particular group of voters will choose (Holleman et al., 2016; De Spindoctors, 2023).
+
+Various studies have shown that parties can gain electoral benefits from carefully choosing their ideological positions, such as positioning themselves more central or more extreme depending on the electoral system (Cox, 1990; Ilmarinen et al., 2022). Theorems such as the median voter theorem (cf. Appendix A1) and the rational choice models of policy determination suggest that parties tend to look forward and anticipate the policy stances of the other parties (Congleton, 2022). For some parties, it can be favorable to take a central position closer to the median voter (centripetal tendencies), whereas for others it might be auspicious to work towards more extreme equilibria (centrifugal tendencies) (Downs, 1957; Calvo & Hellwig, 2010). 
+
+As such, the problem of misalignment between parties’ answers on statements and true ideological positions is that the outcome may not accurately reflect a voter’s stance on given policy issues (Mendez, 2012; Louwerse & Rosema, 2013). Given this potential threat of party self-placement in VAAs, other methods have emerged as a result, such as expert surveys on party ideologies as well as a more hybrid approach combining self-placement and expert coding, something the KiesKompas VAA utilizes. These methodological approaches have, however, also various disadvantages and the outcomes of chosen algorithms are not necessarily neutral, as also further elaborated in Appendix A2 (Gemenis, 2012; Mendez, 2012). 
+
+Contrary to these traditional approaches to demonstrate party (dis)agreement in VAAs, the present study is concerned with exploring agreement in VAAs using a network modeling approach. The network has the political parties as entities and ‘agreement on statements’ as relation (with no specific direction) between the entities (cf. Appendix A3 for further details). Given the demonstrated interdependence in party positioning in VAAs, applying network science to the context of studying political agreement in VAAs is a highly appropriate and fruitful approach (Cranmer et al., 2021). For instance, Meyer and Muller (2014) advocate future work on party policy positions to closely consider the bias associated with model independence within existing models. 
+
+Hence, by examining agreement on VAA statements from a network approach, it acknowledges the inevitable possibility of political parties strategically positioning themselves in relation to parties’ (anticipated) attributes, which therefore affects the parties’ statements in a VAA as perceived by its users (Knoke & Yang, 2020). Moreover, it recognizes that the VAA design and its associated statements are dynamic and may change over time, resulting in different relations among the political parties dependent on the overall political context in which one examines VAAs. Considering the median voter theorem and putting the understanding of strategic positioning within VAAs as a network into the context of the 2023 Dutch parliamentary elections yield two particularly interesting research questions (RQs):
+
+ 
+* RQ 1: To what extent do Dutch political parties running for the 2023 Parliamentary elections agree? 
+
+* RQ 2: What factors influence agreement between political parties in the 2023 Dutch Parliamentary elections? 
+
+These RQs will be answered using Conditional Uniform Graph (CUG) tests and Exponential Random Graph Models (ERGMs). CUGs are extremely useful for studying network properties. They can evaluate whether a specific feature of a network (such as the centrality of political parties in a VAA) is statistically significant (Cranmer et al., 2021). ERGMs, on the other hand, help analyze complex networks and understand the network dependencies (strategic positions) as well as tie formation processes, such as agreement in VAAs between political parties (Cranmer et al., 2021).
+
+The contribution of the present study is threefold. First, it will contribute to the academic field of political science by demonstrating how the application of network science can be a promising intersection compared to more traditional approaches in VAA design. Second, it will highlight network patterns within the Stemwijzer VAA that can help political parties and VAA designers to better understand the dynamics at play and the implications of choosing certain methodologies by neglecting its inherent interdependencies. Third, it aims to underscore to voters how VAAs play a crucial role in democratic decision-making and can be a strategic political game – considering the median voter theorem – that may influence the outcomes they receive, thereby emphasizing the importance of the reliability and validity of VAAs within an increasingly volatile electorate. 
+
+In the following, we will first describe the data that will be used, and highlight the rationale of employing CUG tests and ERGM for the two respective studies. Next, we will present the study design and results of both RQs and critically evaluate the meanings of these findings. Finally, we conclude on the project and provide recommendations for future research. 
+ 
+
+\newpage
+
+# Dataset
+
+To answer the RQs, this project will utilize data from the Stemwijzer VAA for the 2023 Dutch parliamentary elections (Stemwijzer, 2023). Even though there are many VAAs available on the internet, StemWijzer has been chosen due to its popularity, content and participation of political parties (cf. Appendix A4). Data was collected manually from StemWijzer by one of the researchers on November 3 and again on November 16 when two additional parties were added, leading up to 25 parties in total (Stemwijzer, 2023). StemWijzer launched its VAA on October 25, 4 weeks prior to the elections (NOS, 2023). The StemWijzer statements were designed by ProDemos – an information center delivering education on topics such as citizenship, rule of law, and democracy (cf. Appendix A5). 
+
+To ensure that no manual errors were made in the data collection phase, one of the other researchers went through the collected data and confirmed its accuracy. The StemWijzer has 30 statements and for each of the 30 statements, a party has three options: it can indicate to either agree, to disagree, or to choose ‘none of them’ – a neutral position (Stemwijzer, n.d.). The agreement heatmap below in Figure 1 demonstrates for how many of the 30 statements a party agreed, with the light green color indicating that a party agreed for 50% or more of the statements with another party. Summary statistics of these agreements reveal that the minimum number of agreements occurs between BIJ1 and JA21 (3), whereas the most takes place among NSC and CDA, and GL-PvdA with both LEF and PvdD (25).
+
+ 
+
+\vspace{0.5cm}
+
+```{r heatmap, echo=FALSE, fig.width=8}
+# importing the stemwijzer statement data with agreement
+stemwijzer_df <- read.csv("Stemwijzer_Data_4_11 - data_16_11.csv")
+
+# Exploratory Data Analysis Basics ####
+cols_to_convert <- 4:29  # Columns to convert
+stemwijzer_df[cols_to_convert] <- lapply(stemwijzer_df[cols_to_convert], as.numeric) 
+
+# Convert to numeric
+statement_scores <- as.matrix(stemwijzer_df[, 5:29])
+parties <- colnames(stemwijzer_df)[5:29]
+
+# Making the matrix of agreement from the statement scores
+
+matrix_of_agreement <- outer(parties, parties, 
+                             Vectorize(function(x, y) {
+  agree_count <- sum(statement_scores[, x] == 2 & statement_scores[, y] == 2)
+  neutral_count <- sum(statement_scores[, x] == 1 & statement_scores[, y] == 1)
+  disagree_count <- sum(statement_scores[, x] == 0 & statement_scores[, y] == 0)
+  agree_and_disagree_sum <- agree_count + disagree_count + neutral_count
+                               
+# If x and y are the same party (on the diagonal), add 30 to account for all statements
+if (x == y) {
+ agree_and_disagree_sum <- 31
+ }
+  agree_and_disagree_sum
+  }))
+
+# adding parameters for the plot
+
+par(mar = c(1,3, 3, 3))
+color_palette <- colorRampPalette(c("red", "lightgreen","darkgreen"))(n = 3)
+
+parties_short <- parties
+parties_short[c(19, 22, 23, 24)] <- c("PP/DGR","LP", "SvNLD", "NLmetPlan")
+parties_long <- parties
+parties_long[c(19, 22, 23, 24)] <- c("Piratenpartij...De.Groenen (PP/DGR)",
+                                 "Libertaire.Partij (LP)",
+                                 "Samen.voor.Nederland (SvNLD)",
+                                 "Nederland.met.een.Plan (NLmetPlan)")
+agreement_heatmap <- heatmap(
+  matrix_of_agreement,
+  col = color_palette,   # Use the custom color palette
+  Rowv = NA,             # No row clustering
+  Colv = NA,          # No column clustering
+  margins = c(6,6),
+  labRow = parties_long,
+  labCol = parties_short,
+  main = "Figure 1. Party Agreement Heatmap"
+) 
+legend("left", legend = c("0-14", "15-29", "30"), 
+       fill = c("red", "lightgreen","darkgreen"), 
+       title = "Agreements")
+
+```
+
+\vspace{0.5cm}
+
+The number of agreements can, however, also be visualized from a network point of view, using thresholds that determine whether an edge exists or not. For instance, Graph 2a on the left below depicts a network where parties that agree 15 or more times form an edge (i.e. the light green boxes in Graph 3). Obviously, there are many possible network configurations of the data at hand given all the possible thresholds, such as the network in Graph 2b visualizing parties that agree on at least 70% of the StemWijzer statements. Even though such network configurations can be intriguing to analyze, such as the manner in which parties like PVV & 50PLUS in Graph 2b serve as a bridge between political party clusters, deciding on a specific threshold would be rather arbitrary and can lead to selection biases negatively affecting the results. Furthermore, the networks below focusing on overall agreement counts between parties would not lend themselves well to study something such as the median voter theorem, which assumes the (strategic) positioning of political parties, as this network does not represent a certain dimension/scale upon which political parties can place themselves ‘in a median’.
+
+```{r wrangling, message=FALSE, warning=FALSE, include=FALSE}
+
+# Remove 3 statements that are hard to classify as they are neither right-left ####
+# 1. The own risk within health insurance should be abolished. (row 3)
+# 2. The government should invest more in underground CO2 storage. (row 7)
+# 3. There should be more nuclear power plants in the Netherlands. (row 10)
+stemwijzer_df_clean <- stemwijzer_df[-c(3, 7, 10), ]
+
+
+# Transforming the data into a network ####
+
+# First, we want to transform the stemwijzer_df into a different format
+# We chose for a long format, where each row contains a combination of two 
+# parties. This will make it easier to create an edge list and compare
+# whether two parties agree on a certain statement or not. 
+long_df <- stemwijzer_df_clean %>% pivot_longer(cols=colnames(.)[5:29],
+                               names_to='party',
+                               values_to='answer')
+
+# Create unique pairs of political parties for each statement
+pairs_df <- long_df %>%
+  select(Statement, Abbreviation, Tag, Right) %>%
+  distinct() %>%
+  expand(Statement, Party1 = long_df$party, Party2 = long_df$party) %>%
+  filter(Party1 != Party2) %>%
+  filter(row_number(Party1) < row_number(Party2)) ## To ensure unique rows
+
+# Merge the pairs with the original tibble to get the corresponding answer values
+result_df <- pairs_df %>%
+  left_join(long_df %>% select(Statement, party, answer), 
+            by = c("Statement", "Party1" = "party")) %>%
+  rename(Value_Party1 = answer) %>%
+  left_join(long_df %>% select(Statement, party, answer), 
+            by = c("Statement", "Party2" = "party")) %>%
+  rename(Value_Party2 = answer) 
+
+# Making the statement_right. Containing all right statements to be used in the next code
+# paragraph
+statement_right <- stemwijzer_df %>%
+  select(Statement, Right)
+result_df <- left_join(result_df, statement_right, by = "Statement")
+
+# Making sure that only if parties agree on a right statement, there is an agreement.
+stemwijzer_long_df <- result_df %>%
+  mutate(agreement = ifelse(Value_Party1 == Value_Party2, 1, 0)) %>%
+  mutate(right_agreement = ifelse((Right == 1 & Value_Party1 == 2 & 
+                                    Value_Party2 == 2), 1, 0)) %>%
+  mutate(non_left_agreement = ifelse((Right == 0 & Value_Party1 == 0 & 
+                                        Value_Party2 == 0), 1, 0))
+
+# Calculate how often parties agree on right_wing statements ####
+right_agreement_count <- stemwijzer_long_df %>% 
+  filter(right_agreement == 1 | non_left_agreement == 1) %>%
+  group_by(Party1, Party2) %>%
+  summarise(count = n())
+
+# Making the edge threshold is more than 13 statements
+right_edge_list <- right_agreement_count %>%
+  filter(count > 13) %>%
+  select(Party1, Party2)
+
+
+# Same approach for agreement count ####
+colnames(matrix_of_agreement) <- colnames(stemwijzer_df)[5:29]
+
+agreement_count <- as.data.frame(matrix_of_agreement) %>%
+  mutate(party2 = colnames(.))
+
+col_names <- colnames(agreement_count)
+agreement_count <- agreement_count[, c(length(col_names), 1:(length(col_names)-1))]
+
+counts_of_agreement <- agreement_count %>% 
+  pivot_longer(cols=colnames(.)[2:26],names_to='party', values_to='count') %>%
+  filter(party2 != party) %>%
+  select(party2, party, count) %>%
+  rowwise() %>%
+  mutate(combined_parties = paste(sort(c(party, party2)), collapse = "_")) %>%
+  arrange(combined_parties) %>%
+  distinct(combined_parties, .keep_all = TRUE) %>%
+  select(-combined_parties)
+
+# min(counts_of_agreement$count) ## 3
+# max(counts_of_agreement$count) ## 25
+agreement_count_ntwrks <- counts_of_agreement %>%
+  mutate(more_2 = ifelse(count > 2, 1, 0)) %>%
+  mutate(more_10 = ifelse(count > 10, 1, 0)) %>%
+  mutate(more_15 = ifelse(count > 15, 1, 0)) %>%
+  mutate(more_20 = ifelse(count > 20, 1, 0))
+```
+
+```{r, graph1, message=FALSE, include=FALSE}
+# Creating Networks ####
+node_attributes <- read.csv("node_attribute_partijen.csv", sep = ",")
+
+# Transpose Node Attributes 
+node_attributes <- as.data.frame(t(node_attributes))
+colnames(node_attributes) <- node_attributes[1, ]
+node_attributes <- node_attributes[-1, ]
+node_attributes$Party <- rownames(node_attributes)
+
+node_attributes[1:7] <- lapply(node_attributes[1:7], as.numeric)
+
+# Create a NodeList (keeping it unique) and Join Node Attributes
+NodeList <- unique(c(agreement_count_ntwrks$party2, agreement_count_ntwrks$party))
+NodeList_df <- as.data.frame(NodeList)
+colnames(NodeList_df)[1] <- 'Party'
+
+# Making the Age and zittend attribute for all parties. Age is the age of a party and
+# zittend classifies if a party is currently in parliament
+NodeList_attributes <- NodeList_df %>% 
+  left_join(node_attributes, by = 'Party') %>%
+  mutate(zittend = ifelse((node_attributes$Seats_2021 > 0), 1, 0)) %>% 
+     mutate(Age = 2023 - node_attributes$Year)
+
+#Making the baseline network of agreement between parties on 14 or more right statements.
+# Used in the ERGM study.
+right_network <- igraph::graph_from_data_frame(right_edge_list, 
+                                               NodeList, directed = FALSE)
+
+```
+
+
+```{r, graph2, echo = FALSE}
+
+#setting the parameters for the plot
+par(mar = c(3,1, 3, 1))
+par(font = 2, cex.main = 0.8)
+
+#plotting the network of agreement on 15 or more statements in stemwijzer.
+EdgeList15 <- agreement_count_ntwrks %>%
+    filter(count > 14) %>%
+    select(party, party2)
+
+ntwrk15 <- igraph::graph_from_data_frame(EdgeList15, NodeList, directed = FALSE) 
+plot(ntwrk15,vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=0.7, 
+main = "Figure 2a, Network of parties that agree 15 
+     or more times in Stemwijzer (>=50%)")
+```
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image36.png}
+    \caption*{}
+    \label{fig:legend1}
+\end{figure}
+
+```{r graph2.1, echo=FALSE}
+#setting the parameters for the plot
+par(mar = c(3,1, 3, 1))
+par(font = 2, cex.main = 0.8)
+#plotting the network of agreement on 21 or more statements.
+EdgeList21 <- agreement_count_ntwrks %>%
+  filter(count > 20) %>%
+  select(party, party2)
+
+ntwrk21 <- igraph::graph_from_data_frame(EdgeList21, NodeList, directed = FALSE) 
+plot(ntwrk21,vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=0.7,
+main = "Figure 2b, Network of parties that agree 21 
+     or more times in Stemwijzer (>=70%)")
+
+
+
+```
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image36.png}
+    \caption*{}
+    \label{fig:legend1}
+\end{figure}
+
+Hence, the present study will code the StemWijzer statements into a scale or dimension that allows for testing the median voter theorem as well as overall agreement patterns (RQ 1) and what influences agreement (RQ 2). As such, the researchers decided to classify statements into whether they were right-wing or not. This classification was done through various criteria from reviewing literature and the assistance of a subject matter expert with a PhD in Computational Political Science (Wojcik et al., 2021; Cossu, 2023; Diffen, 2023). Appendix A6 clearly outlines the (reverse) coding procedure and the methodological considerations that took place. Eventually, we ended up with 27 statements classified on a right-left scale as 3 statements were deemed inappropriate to classify due to their ambiguous nature. Finally, for our baseline network representation, we decided to put a threshold at agreement of at least 14 statements, indicating that parties share edges when they agree over 50% of the 27 statements. Figure 3 below depicts the baseline network for our subsequent analysis. 
+
+```{r, graph3, echo=FALSE}
+#setting the parameters for the plot
+par(mar = c(3,1, 3, 1))
+par(font = 2, cex.main = 0.8)
+
+# plotting baseline network of parties that agree on 14 or more statements >50%
+plot(right_network,vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=0.7, 
+main = "Figure 3, Baseline network 
+     of parties that agree on 50% or more of the Stemwijzer 
+     statements classified as right-wing")
+
+```
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image36.png}
+    \caption*{}
+    \label{fig:legend1}
+\end{figure}
+
+\newpage
+
+# Research Rationale
+
+To address the RQs, this project will employ two methods:: Conditional Uniform Graph (CUG) tests and Exponential Random Graph Models (ERGMs). For the first RQ, the CUG test is suitable for examining the extent of agreement among political parties. It focuses on statistical properties within a network, assessing whether observed properties differ significantly from those in randomly generated graphs with similar network characteristics (Cranmer et al., 2021).
+
+Study 1 will test four relevant statistical properties: transitivity (the tendency of parties to stick together and form ‘agreement clusters’), betweenness centrality (to what extent parties act as intermediaries with other parties, thus occupying a more ‘median’ position), closeness centrality (how close and well-connected parties are to all other parties), and degree centrality (the number of parties a political party agrees (X times) with).
+
+More specifically, in our CUG tests, significant deviations in transitivity within our network, compared to the random graphs, suggest a heightened or diminished tendency of nodes to agree with each other. Accordingly, these deviations may offer insights into the observation of the median voter theorem. The centrality measures are of particular relevance for this research context, as they may reveal patterns of strategically positioned nodes. This can be due to being located more central within the broader network thereby connecting various agreement clusters, being located closer to other parties or by generally agreeing more with other parties, all possibly hinting at the presence of the median voter theorem in the context of the 2023 Dutch parliamentary elections.
+
+Concerning our second RQ, ERGMs are relevant and powerful in the sense that they can analyze complex networks and not only measure the impact of node attributes, but also detect structural patterns occurring within the network. Often, studying networks involves descriptive statistics that calculate basic structural features of the networks – as done with the CUG test, yet more often, interest within the social sciences is more in the explanation of why certain structures emerge in a group (Vega Yan et al., 2021). 
+	
+ERGMs are unique as they are able to test and control for dependencies that are inherent in network data, something that previous spatial models in VAAs often failed to consider (Meyer & Muller, 2014; Otjes & Louwerse, 2014; Vega Yan et al., 2021). Hence, ERGMs are relevant for studying the factors influencing agreement in Study 2. Our literature review showed that agreement may not only be influenced by party characteristics but also by how a party strategically positions itself relative to others, which is inherently structural.
+
+There are evidently always other methods that can help us understand the extent to which political parties in the 2023 Parliamentary elections agree. Notwithstanding, for the sake of the RQs within the scope of the median voter theorem and overall patterns of agreement in VAA statements, the methodological approaches chosen in this project are the most appropriate given their focus on statistical properties within a network and structural network dependencies respectively.
+ 
+
+\newpage
+
+# Results
+This chapter will discuss the results of the two different methods that we used. The CUG tests will be discussed in Study 1 and the ERGMs will be discussed in Study 2. It is important to emphasize that for both studies, we use a significance level of 0.05. 
+
+## Study 1: Party Agreement with CUG Tests
+
+
+### Introduction & Hypotheses
+
+As underscored in the previous section, CUG tests are apt to answer the first RQ that specifies the extent to which the parties running for the 2023 Dutch parliamentary elections agree. The description of the CUG test process, as well as its results and implications, will refer to the right-wing classified statements, although Appendix C also demonstrates the results of what results a CUG test would yield if it were applied to the overall agreement networks. Keeping the central voter theorem in mind, the hypotheses for our CUG tests are the following:
+
+* **H1**: Parties strategically position themselves more central (higher centrality than random)
+
+* **H2**: Parties tend to cluster together (higher transitivity than random)
+
+### Methodology
+
+The CUG tests were performed for all the 20 possible network configurations using the sna and snafun packages in R. For the transitivity, we specified 2000 random graphs that shared the same features as perceived in the original network, such as the same number of entities (25 parties), same amount of edges (depending on the network) and being undirected (as party agreement has no specific direction). Subsequently, we calculated the transitivity for each of the 2000 random networks and examined its distribution (cf. Appendix C1 for an example of such a distribution). Finally, for the three centrality measures – betweenness, closeness and degree –, a similar procedure took place, as we generated 2000 random networks that replicated the original network features by conditioning on the edges (which consists of the number of entities plus number of edges).
+
+### Findings
+
+Table 1 below shows the results for the CUG tests that we conducted, highlighting the specific scores and whether they were significantly different compared to the one observed in the network (cf. Appendix C1 for guidance on interpreting the result tables). One conspicuous pattern is the NaN values that occur for the observed closeness centralities in networks where parties agree at least 5 times on ‘right-wing’ statements. This can be explained by the fact that this is the first threshold in which isolates are introduced (i.e. parties that are no longer connected to any other party), rendering it impossible for the closeness algorithm to calculate how close parties are to others (as the distance to such an isolate is infinite). Further analysis reveals that these isolates are BIJ1 and Volt (parties commonly being referred to as left-wing and/or progressive), validating the preceding explanation.
+
+\newpage 
+
+**Table 1.** Results of CUG tests for all possible network configurations. 
+
+| Network | \# of edges | Transitivity | Betweenness | Closeness | Degree |
+|---------|-------------|--------------|-------------|-----------|--------|
+| All agreement | 297 | 0.9898 | 0.00003 | 0.0204 | 0.0109 |
+| 2 or more | 278 | 0.9426\* | 0.0021\* | 0.1311\*\* | 0.0797 |
+| 3 or more | 255 | 0.9008\* | 0.0100\* | 0.2479 | 0.1630 |
+| 4 or more | 220 | 0.8835\* | 0.0834\* | 0.2453 | 0.1993 |
+| 5 or more | 184 | 0.8605\* | 0.0352\* | NaN | 0.2391 |
+| 6 or more | 149 | 0.8639\* | 0.0613\* | NaN | 0.3207\* |
+| 7 or more | 116 | 0.8586\* | 0.0220\*\* | NaN | 0.3496\* |
+| 8 or more | 98 | 0.8892\* | 0.0176\*\* | NaN | 0.3243\* |
+| 9 or more | 90 | 0.8610\* | 0.0271\*\* | NaN | 0.3080 |
+| 10 or more | 77 | 0.8129\* | 0.0478\*\* | NaN | 0.3551\* |
+| 11 or more | 70 | 0.7805\* | 0.0487\*\* | NaN | 0.3804\* |
+| 12 or more | 54 | 0.8133\* | 0.0373\*\* | NaN | 0.3025\* |
+| 13 or more | 41 | 0.6898\* | 0.0267\*\* | NaN | 0.3496\* |
+| 14 or more (baseline) | 33 | 0.5781\* | 0.0571\*\* | NaN | 0.3786\* |
+| 15 or more | 23 | 0.5505\* | 0.0860\*\* | NaN | 0.3243\* |
+| 16 or more | 11 | 0.4839\* | 0.0274 | NaN | 0.2319\* |
+| 17 or more | 6 | 0.25 | 0.005\* | NaN | 0.2047\* |
+| 18 or more | 4 | 0.6 | 0.0072 | NaN | 0.1214\* |
+| 19 or more | 3 | 1 | 0 | NaN | 0.0797 |
+| 20 | 1 | 1 | 0 | NaN | 0.0417 |
+*P(X >= Observation) <= 0.05
+
+**P(X <= Observation) <= 0.05
+
+
+The increase in isolates in the network configurations (such as the 13 parties in Figure 5 for our baseline network with over 50% agreement) also explains values for the other network measures. For instance, we see a degree centrality in the networks that is significantly different (higher) compared to the randomly generated networks for all 6 to more to 18 to more networks, except for the 9 to more network. This makes intuitive sense as the presence of isolates makes the degree for the non-isolates by definition relatively higher given that the number of edges in the CUG test has been conditioned for all parties, including the isolates. 
+
+Concerning the betweenness centrality, we observe the pattern of random networks first generating betweenness values significantly lower than the observed value, while generating higher values when the threshold is 7 or more. This sudden change that the observed betweenness is significantly lower than one would expect at random occurs as the shortest paths (as measured in betweenness centrality) run through fewer nodes than one would expect at random. Lastly, concerning the transitivity, we note that for almost all network configurations, transitivity is significantly higher than randomly generated graphs with similar features, which can be due to the network remaining rather dense when the number of isolates increases, as the non-isolates still remain closely connected with more right-wing parties. 
+
+To relate the aforementioned findings back to the hypothesis, we can state that the extent to which parties agree – measured through transitivity and centrality measures — depends on the particular network configuration. We find that the observed degree centrality, betweenness centrality, and transitivity are often statistically significant in the conducted CUG tests, yet this is not particularly surprising given the rather static structure with an increasing number of isolates (disconnected left-wing parties). Betweenness centrality is for example lower than in the random graphs for higher thresholds, indicating that there likely is lower overall agreement on right-wing statements (H1), and transitivity is higher, indicating that clustering is indeed prevalent (H2). 
+
+It thus remains paramount to be critical of the insights derived from the CUG tests in Table 1, as there are various limitations. For example, the chosen approach is, although multifaceted due to the multiple configurations, rather static. The weights are always 1, whereas it would be a more appropriate choice to reflect the different extents to which parties agree through weighted edges. However, analyzing networks where the most ideologically different parties are still connected (for 10% of the statements) also brings its challenges, justifying our chosen approach. Lastly, another limitation is the inevitable bias in the classifying– and coding process that took place in the right-wing classification, which subsequently affects network configurations and research outcomes. To partly account for this in reference to future research, Appendix C2 entails a similar CUG test analysis yet then with the overall agreement thresholds (Figure 4). For instance, in such different network configurations for future studies, closeness centrality measures that show how central a party is within a network can be much more informative than was the case for the aforementioned configurations that very often generated NaN values.
+
+
+## Study 2: Indicators of Party Agreement with ERGMs
+
+### Introduction & Hypothesis
+
+As emphasized before, ERGM models are particularly powerful in statistically validating structural components or dynamics in a network, and thus in explaining what influences agreement between political parties. Besides structural patterns of strategic positioning that influence agreement of VAA statements, various academic sources pertaining to the median voter theorem suggest that centripetal tendencies inter alia result from being 1) a larger party, 2) a former coalition party, 3) an older party compared to new parties, or 4) simply being a more central party on the well-known left-right scale (Downs, 1957; Calvo & Hellwig, 2010; Congleton, 2022). Consequently, this second ERGM study will test the following hypotheses:
+
+* **H1:** Parties that have historically more electoral votes are more likely to be situated in  the center.
+
+* **H2:** Parties involved in a coalition government tend to be more centrist compared to parties that are in opposition.
+
+* **H3:** Parties who are older tend to be more centrist compared to those who are younger. 
+
+* **H4:** Political parties are more likely to show centripetal tendencies by agreeing less with a right-wing party on right statements.
+
+### Methodology
+
+As addressed in the introduction, the network we work with is the baseline network in Figure 3, with a threshold for parties agreeing on more than 50% of the statements. As such, we reduced the network’s density, without compromising too much information. The network attributes were obtained by scraping the data of websites of parties and its operationalization is further explained in Appendix D1. To control for our right-wing classification (Appendix B), we also entered a left-right variable based on the left-right classification in the KiesKompas VAA and a structural GWESP term (cf. Appendix D2).
+
+Before interpreting the final model, we ran initial models with the ergm R package as can be seen below in Table 2. The first part of the initial models covers all the exogenous variables that are listed in the hypothesis section above separately (Model 1-6). When looking at the base model consisting of solely the amount of edges as a test statistic, we observe that this coefficient (log-odds) is significantly negative for all models (-2.09\*\*\* to -4.5\*\*\*), meaning that the probability of edge formation based on the amount of edges (0.11 to 0.01) in the model is significantly below random chance (0.5). This signifies a sparse network, which also was one of our design choices to specifically cater it for ERGM performance.
+
+```{r include=FALSE, message=FALSE}
+ergm1 <- readRDS("ergm1.rds")
+ergm2 <- readRDS("ergm2.rds")
+ergm3 <- readRDS("ergm3.rds")
+```
+
+
+
+
+```{r include = FALSE, message=FALSE}
+ergm1.1 <- readRDS("ergm1.1.rds")
+ergm1.2 <- readRDS("ergm1.2.rds")
+ergm1.3 <- readRDS("ergm1.3.rds")
+ergm1.4 <- readRDS("ergm1.4.rds")
+ergm1.5 <- readRDS("ergm1.5.rds")
+ergm1.6 <- readRDS("ergm1.6.rds")
+ergm1.7 <- readRDS("ergm1.7.rds")
+ergm1.8 <- readRDS("ergm1.8.rds")
+ergm1.9 <- readRDS("ergm1.9.rds")
+ergm1.10 <- readRDS("ergm1.10.rds")
+```
+
+\newpage
+
+```{r echo = FALSE}
+knitr::kable(texreg::matrixreg(list(ergm1.1,ergm1.2,ergm1.3,ergm1.4,ergm1.5,ergm1.6,ergm1.7,ergm1.8,ergm1.9,ergm1.10)), caption = "Initial model results", booktabs = TRUE)  
+```
+
+
+
+The only significant coefficient in the initial models is left-right. This is not very surprising, as it suggests that parties who are classified as ‘right’, agree on right-wing statements. The coefficient (1.16\*\*\* to 1.43\*\*), means that the probability of edge formation based on whether a party is left or right (0.76 to 0.81) is significantly above random change of edge formation (0.5). All other coefficients are non-significant, indicating that the probability of forming an edge is not significantly different from random chance and thus we cannot reject the null hypothesis for H1, H2 & H3.
+
+### Findings
+
+To assess strategic positioning in accordance with the median voter theorem, an ERGM model is used with the most important term being geometrically weighted dyad-wise shared partners (GWDSP). Specifically this term tests whether there are more parties with central positions in comparison with right or left positions (cf. Appendix D1, Hypotheses 4). Before reviewing the result, the overall markov chain monte carlo (MCMC) sampling diagnostics and the goodness of fit (GOF) for all three models with dyadic dependent terms needed to be assessed. In Appendix D3, a general assessment of the MCMC sampling diagnostics and GOF for all models can be found, which can both be deemed satisfactory for Model 2 and Model 3. The corresponding results of the MCMC and GOF are included in Appendix D4-D6. 
+
+\newpage
+
+```{r results = 'asis', echo = FALSE}
+knitr::kable(texreg::matrixreg(list(ergm1, ergm2, ergm3)), caption = "Final model results", booktabs = TRUE)
+
+```
+
+
+Table 3 shows the results of our final ERGM model. When not accounting for right parties in the network, the GWDSP coefficient (-0.43\*\*\*) is significantly negative (Model 1). The probability of edge formation based on whether a party is centric compared to other parties (0.39) is significantly below random chance (0.5), meaning that center parties are agreeing more on right statements than in a given random political landscape, and have thus interestingly become more right-wing. However, when we account for the presence of right-wing parties with GWESP, the  results show that there is no significant GWDSP term (-0.03) and the overall GOF also improves, provided the lower AIC and BIC scores. 
+
+Hence, the probability of edge formation whether a party is centric compared to other parties (0.49) is not significant compared to random chance (0.5) when the shared edges of (more) right parties are included in the ERGM model. This suggests that when accounting for the shared edges of right parties in the Dutch political landscape, center parties are not significantly more right-wing than in a given political landscape. However, we see that the number of shared edges of right parties (6.86\*\* to 6.57\*) in the Dutch political landscape is significant (solely with a 5% significance level) compared to a random political landscape. The probability of edge formation on whether a party is right-wing (0.9999 to 0.9986) is thus significantly different from random change (0.5), indicating that more parties exist that agree with right statements than in a given random political landscape.
+
+With regard to the implications of these results, our analysis does not show any particular evidence of the median voter theorem in the StemWijzer VAA. Although in the preceding analysis we assumed our model to be correct and thus represent the Dutch political context, it may be the case that the network configuration in the present study is too limited to clearly visualize interdependence of party agreement, as well as the existence of strategic position taking. Our present study with its use of thresholds, for example, did not study any policy positions and agreement patterns over time, and agreement between parties were either absent (for isolates) or present (for non-insolates), rather than varying in degree. 
+
+Nevertheless, the findings regarding the chosen baseline network may be indicative of the median voter in the Dutch political landscape changing in a more right-wing direction. To illustrate this, the total number of current seats (2023) in the Dutch parliament by the 12 non-isolates in our baseline network is exactly two-third (100), whereas that of the 13 isolates is one-third (50), compared to 81 and 69 seats in 2021, respectively. Given the strong edgewise shared partners of the right parties in the network, this might be where (parties think) the median voter is. Consequently, this may still have led to misalignment with parties’ true ideological positions, yet these more strategic subtle differences were not sufficiently noticeable in the analyzed network.
+
+# Conclusion
+
+The present study explored political party agreement in the 2023 Dutch parliamentary elections StemWijzer VAA by examining both the extent to which these parties agree on statements classified as right-wing and what factors exactly influence this agreement. The findings of our CUG test and ERGMs reveal that parties and their policy stances tend to be more connected than disconnected from each other – as measured through transitivity and various centrality measures – and that although no structural evidence could be found in favor of strategic position taking in VAAs, we cannot exclude this possibility given various limitations in the preceding analysis.
+
+One such major limitation is the use of thresholds for network configuration purposes, as these can significantly alter the results of hypothesis testing. It would be more accurate, for instance, to perform analyses that involve weighted networks or networks configured over time, as such networks would better represent a political context and present more useful information about the extent to which parties agree as well as the temporal dynamics of political parties and their mutual agreement. Regarding the ERGM study, analyses with Generalized (G)ERGMs and Temporal (T)ERGMs would in such cases be possible. Other things that could be done would be extending the present study to different political contexts, looking more into the nature of agreement between political parties through classifying VAA statements into policy dimensions, or using the benefits of network science to study interesting case studies in comparative politics, such as the recent electoral success of the extreme right Freedom Party (PVV) in the Dutch political context (cf. Appendix E for further and a more extensive discussion of the present study’s limitations, implications and directions for future research).
+
+What remains to be highlighted is that the present study opens various promising paths to future research. Even though it did use a left-right scale for the purpose of testing various hypotheses, the visualization of the data and the interpretation of the results through social network analysis shed light on a novel way to explore agreement among political parties and VAAs compared to the traditional approaches of political party stances. As such, it can help voters, VAA designers, and political parties to see the network interdependencies that are inherently at play in political contexts. 
+
+\newpage
+
+# References
+
+Amnesty International. (n.d.). Mensenrechtenwijzer. [Internet]. Retrieved November 20, 2023 
+from  https://s.amnesty.nl/mensenrechtenwijzer 
+
+Calvo, E., & Hellwig, T. (2010). Centripetal and centrifugal incentives under different electoral systems. American Journal of Political Science, 55(1), 27–41.
+
+Cranmer, S. J., Desmarais, B. A., & Morgan, J. W. (2021). Inferential network analysis. 
+Cambridge University Press. 
+
+Congleton, R. D. (2022). The Median Voter Model. West Virginia University. [Internet]. 
+Retrieved November 6, 2023 from 
+http://rdc1.net/forthcoming/Median%20Voter%20II%20(2.0).pdf 
+
+Cossu, E.(2023).Clustering and Analysing Relevant Policy Dimensions of Populist, Left-Wing, 
+Centrist, and Right-Wing Parties across Europe. Central European Journal of Public 
+Policy,17(1) 41-54. 
+
+Cox, G. W. (1990). Centripetal and centrifugal incentives in electoral systems. American Journal of Political Science, 34(4), 903. https://doi.org/10.2307/2111465 
+
+De Spindoctors. (2023, March 10). Baseer jij je stem op de Stemwijzer of Kieskompas? 'Niet 
+doen, ze zitten vol spin'. NPO Radio 1. [Internet]. Retrieved November 6, 2023 from  
+https://www.nporadio1.nl/nieuws/politiek/e9a8e93c-321e-4689-a13c-da3a3b78a240/bepaal-jij-je-stem-op-de-stemwijzer-of-kieskompas-niet-doen-ze-zitten-vol-spin
+
+Diffen. (2023). Left Wing vs. Right Wing. [Internet]. Retrieved November 21, 2023 from 
+https://www.diffen.com/difference/Left_Wing_vs_Right_Wing
+
+Downs, A. (1957). An economic theory of political action in a democracy. Journal of Political Economy, 65(2), 135–150.
+
+Garzia, D., & Marschall, S. (2015). Matching voters with parties and candidates: Voting 
+advice applications in a comparative perspective. ECPR Press.
+
+Gemenis, K. (2012). Estimating parties’ policy positions through voting advice applications:
+Some methodological considerations. Acta Politica, 48(3), 268–295. 
+
+Gemenis, Kostas & Van Ham, Carolien. (2014). Comparing methods for estimating parties' 
+positions in Voting Advice Applications. In: Garzia, D., & Marschall, S. (2015). 
+Matching voters with parties and candidates: Voting advice applications in a comparative perspective. ECPR Press. 
+
+Holleman, B., Kamoen, N., Krouwel, A., Pol, J. van, & Vreese, C. de. (2016). Positive vs. 
+negative: The impact of question polarity in voting advice applications. PLOS ONE, 
+11(10). 
+
+Ilmarinen, V.-J., Isotalo, V., Lönnqvist, J.-E., & von Schoultz, Å. (2022). Do politicians’ 
+answers to voting advice applications reflect their sincere beliefs? comparing publicly 
+and confidentially stated ideological positions in a candidate-centred electoral context. 
+Electoral Studies, 79, 102504. 
+
+Kamoen, N., Holleman, B., Krouwel, A., Van de Pol, J., & de Vreese, C. (2015). The effect 
+of voting advice applications on political knowledge and vote choice. Irish Political Studies, 30(4), 595–618.
+
+Kieskompas. (2023). Kieskompas #TK23. [Internet]. Retrieved November 4, 2023 from 
+https://tweedekamer2023.kieskompas.nl/nl# 
+
+Kleinnijenhuis, J., van de Pol, J., van Hoof, A. M., & Krouwel, A. P. (2017). Genuine 
+effects of vote advice applications on party choice: Filtering out factors that affect both 
+the advice obtained and the vote. Party Politics, 25(3), 291–302. 
+
+Knoke, D., & Yang, S. (2020). Social network analysis. SAGE. 
+
+Kumar, P., & Sharma, D. (2020). A potential energy and mutual information based link 
+prediction approach for Bipartite Networks. Scientific Reports, 10(1).
+
+Louwerse, T., & Rosema, M. (2013). The design effects of voting advice applications: 
+Comparing methods of calculating matches. Acta Politica, 49(3), 286–312. 
+
+Mendez, F. (2012). Matching voters with political parties and candidates: An empirical test of four algorithms. International Journal of Electronic Governance, 5(3/4), 264. 
+
+Meyer, T. M., & Müller, W. C. (2014). Testing theories of party competition. Party Politics,
+20(5), 802–813.
+
+NOS. (2023). Stemwijzer voor Tweede Kamerverkiezingen staat weer online. [Intenet]. 
+Retrieved November 4, 2023 from 
+https://nos.nl/collectie/13960/artikel/2495318-stemwijzer-voor-tweede-kamerverkiezingen-staat-weer-online
+
+NOS. (2023b). Zetelverdeling Tweede Kamer. [Internet]. Retrieved December 1, 2023 from 
+https://app.nos.nl/nieuws/tk2023/
+
+Otjes, S., & Louwerse, T. (2014). Spatial models in voting advice applications. Electoral 
+Studies, 36, 263–271.
+
+ProDemos. (2021, March 17). Recordaantal gebruikers voor StemWijzer: 7,8 miljoen. [Internet]. 
+Retrieved November 6, 2023 from 
+https://prodemos.nl/nieuws/recordaantal-gebruikers-voor-stemwijzer-78-miljoen/ 
+
+Stemwijzer. (2023). Tweede Kamerverkiezingen 2023. [Internet]. Retrieved November 4, 2023 
+from https://tweedekamer2023.stemwijzer.nl/#/
+
+Stemwijzer. (n.d.). Frequently asked questions. [Internet]. Retrieved November 4, 2023 from 
+https://www.stemwijzer.nl/faq/ 
+
+Tromborg, M. W., & Albertsen, A. (2023). Candidates, voters, and voting advice 
+applications. European Political Science Review, 1–18. 
+
+Vega Yon, G. G., Slaughter, A., &de la Haye, K. (2021). Exponential random graph models 
+for little networks. Social Networks, 64, 225–238. 
+
+Walgrave, S., Nuytemans, M., & Pepermans, K. (2009). Voting aid applications and the 
+effect of statement selection. West European Politics, 32(6), 1161–1180. 
+
+Wojcik, A.D., Cislak, A. & Schmidt, P. (2021): ‘The left is right’: Left and right political
+orientation across Eastern and Western Europe, The Social Science Journal.
+
+YoungVoice. (n.d.). Retrieved November 20, 2023 from https://www.youngvoice.nl/#/
+
+
+\newpage
+
+# Appendix
+
+## Appendix A. Supplementary Information to the Introduction and Dataset.
+
+This appendix consists of some supplementary information that explains some more technical concepts, literature review findings, or methodological considerations that are touched upon in the introduction or data section. Respectively, these are the median voter theorem (A1), analysis of approaches to VAA design and their disadvantages (A2), unimodal projections of bipartite networks (A3), the rationale for choosing StemWijzer over other VAA’s for data collection (A4), ProDemos’ data collection procedure (A5, and the procedure of (reverse) coding right-wing statements (A6).
+
+### A1. Median Voter Theorem
+
+The median voter theorem suggests that it can be favorable to take a central position closer to the median voter (centripetal tendencies), whereas for others – such as smaller parties – it might be more strategic to work towards more extreme equilibria, known as centrifugal tendencies (Downs, 1957; Calvo & Hellwig, 2010; Congleton, 2022). The figure below illustrates how a plan proposed by candidate 2 ($C^2$) is closer to the median voter ($G^V$), thereby not only getting the votes on the right side of the median voter, but also that between the indifferent voter and median voter (Congleton, 2022). Nevertheless, it needs to be noted that one cannot say with certainty that all parties running for elections make these strategic considerations (to the same extent) when filling in a VAA and thus deviate from their actual ideologies. A study of VAAs in Finland for example, showed no significant difference between VAA positions and sincere ideological positions (Ilmarinen et al., 2022). Our study, however, did not exclude the possibility of strategic position taking – and thus manipulating VAA outcomes – in the Dutch political context. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image35.png}
+    \caption*{Electoral Competition}
+    \label{fig:Electoral Competition}
+\end{figure}
+
+\newpage
+
+### A2. Approaches to VAA design and limitations
+
+The table below highlights the various approaches to designing VAAs and their corresponding disadvantages, ranging from information– and cognitive biases in the expert coding process to higher costs, possibility of strategic positioning as well as basing party positions upon dimensions that may no longer reflect the political context (i.e left-right or progressive-conservative). Even in the context of smartspider VAA in Switzerland that captures eight policy dimensions, there is still much more going on in the placement process of parties that these dimensions alone do not capture, which is detrimental to the information voters receive when filling in a VAA (Louwerse & Rosema, 2013; Otjes & Louwerse, 2014).
+
+
+**Table Appendix A2.** Various methodological approaches to VAA design and its disadvantages
+(Gemenis, 2012; Louwerse & Rosema, 2013; Gemenis & Van Ham, 2014; Otjes & Louwerse, 2014).
+
+|                             | Party self-placement |Expert surveys                        | Hybrid approach (self- placement & expert survey) | 
+| ----------------------------|--------------------- | -------------------------------------|------------------------------------------- |
+|  **VAA example**   | StemWijzer (NL) | -                            |     KiesKompas (NL)/SmartSpider (SU)                                      |
+|  **Disadvantage(s)**|    (High degree of) strategic positioning and manipulating VAA outcomes   | High uncertainty for positioning of smaller and less-known parties |(Possibility of) strategic positioning|    |       | Hybrid approach (self-placement & expert survey)   | Positioning depends a lot on personalities & biases of experts, as well as their prestige (i.e., 'renowned' professors have more say in decisions) |
+|        |                 | Bias potential due to more ‘leftist and liberal preferences’ of political scientists| Positioning depends a lot on personalities & biases of experts, as well as their prestige (i.e. ‘renowned’ professors have more say in decisions) |
+|         |               |   Information depends on the used/available manifestos and public statements| Information depends on the used/available manifestos and public statements| 
+|       |                 |   High costs in terms of time and cognition (especially when using more robust approaches that account for the other disadvantages)| Positioning based upon dimensions that are according to academic debates argued to be no longer reflecting the political context (i.e. left-right & progressive-conservative)|
+
+\newpage
+
+### A3. Bipartite network and unimodal projection
+
+In technical network terminology, the political party stances in VAAs form a bipartite network, in which there is a set of parties as well as a set of statement agreements VAA and where only connections between two nodes in different sets are allowed (Cramner et al., 2021). However, for the sake of convenience and interpretation, one can compress the bipartite network of political party statements in a unimodal projection with parties as entities and ‘agreement on statements’ as relation (with no specific direction) between the entities, as can be seen below in the Figure (Kumar & Sharma, 2020). This unimodal approach is the standard in the current research.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image28.png}
+    \caption*{Unimodal projection of bipartite graph G}
+    \label{fig:unimodel}
+\end{figure}
+
+\newpage
+
+### A4. Rationale for Choosing StemWijzer
+
+There are various reasons why StemWijzer data has been chosen for the present study, and not KiesKompas or any other VAA. First and foremost, StemWijzer is the VAA that has been filled in the most during the past elections. Second, the 30 statements in StemWijzer are rather comprehensive and exhaustive compared to more specialized VAAs, such as those really focusing on human rights, young people or other topics (Amnesty International, n.d.; YoungVoice, n.d.). Third, 25 of the running 26 parties indicated their stances on StemWijzer, compared to the (merely) 18 parties in KiesKompas, another well-known comprehensive VAA. 
+
+### A5. Data Collection Procedure by ProDemos
+
+Data was collected by ProDemos – an information center that delivers education on topics such as citizenship, rule of law, and democracy. With the aim of being as objective and clear as possible, ProDemos formulates (as a confidential subject matter expert (SME) told us) 95 questions based on what is currently popular in the media as well as on electoral research specifying what the broader population generally deems important, and consequently asks the political parties of the political parties to fill in the VAA on behalf of their political party stances (Stemwijzer, n.d.). Hence, parties are responsible for indicating their stances, yet ProDemos confirms whether the provided information aligns with the parties’ election manifesto to reduce the chance of potential bias. Interestingly, the SME told us that StemWijzer only chooses 30 statements that appear on the website, which tend to be those that have the ‘most’ disagreement among the running parties (with the other 65 questions only being asked – in sets of five – when a respondent has a final outcome with two parties being (almost) equally on top to check for differences between these parties). 
+
+### A6. Right-wing Statements (Reverse) Coding Procedure
+
+Using the criteria from reviewing literature and the assistance of our subject matter expert, we decided to remove 3 statements that were deemed inappropriate to classify on a left/right spectrum leaving us with 27 statements (9 right-wing, 18 non-right). Subsequently, we gave pairs of political parties a value of 1 for ‘right-wing agreement’ when they either both agreed on a right-wing statement or both disagreed on a statement that was not right (applying a reverse coding procedure). Whereas overall agreement (as seen in had a minimum of 3 and maximum of 25, this classification yields to a minimum of 1 for ‘right-wing agreement’ (for multiple pairs involving BIJ1, DENK, LEF & Volt) and a maximum of 20 (for the pair of BVNL and JA21, two right-wing parties). Even though network projections still depend on thresholds, the subsequent examinations are now (reverse) coded to a scale that makes more sense to interpret and analyze. For the sake of simplicity, we as researchers decided to put a threshold at agreement of at least 14 statements, indicating that parties have an edge when they agree over 50% of the 27 statements that we classified as right-wing. 
+
+\newpage
+
+## Appendix B. StemWijzer statements and right-wing classification
+
+his Appendix entails all the statements that we used in our analysis, manually collected from the 2023 StemWijzer VAA. Whereas Figure 1 and 2 in the main report include all 30 statements, the right-wing classification removed Statement 3, 6 and 10 as they were not deemed appropriate to classify as left or right - this, and its corresponding justification, can be found in the table below. Note that the classification is subject to discussion, also given the methodological difficulties of classifying statements on a left-right scale, as also demonstrated in research by Otjes & Louwerse (2014).
+
+**Table Appendix B.**
+
+| # | Statement in English | Right-Wing or Not | Justification | Removed |
+|----|----------------------|-------------------|---------------|---------|
+| 1 | The government should ensure that the number of livestock is reduced by at least half. | Non-right | Limited government | No |
+| 2 | The government tax on gasoline, gas, and diesel should be lowered. | Right-wing | Limited government | No |
+| 3 | The own risk within health insurance should be abolished. | - | Free market capitalism | Yes |
+| 4 | Each region in the Netherlands should have a fixed number of representatives in the Second Chamber. | Non-right | TBD | No |
+| 5 | People aged 65 and older should be able to travel for free by train, tram, and bus. | Non-right | Free market capitalism | No |
+| 6 | The government should invest more in underground CO2 storage. | - | Limited government | Yes |
+| 7 | The government should ensure that Surinamese people can travel to the Netherlands without a visa. | Non-right | Nationalism | No |
+| 8 | There should be a law stating that the Netherlands always spends 2% of its gross domestic product on defense. | Right-wing | Military strength | No |
+| 9 | The government should allocate more money to schools for lessons in art and culture. | Non-right | Limited government | No |
+| 10 | There should be more nuclear power plants in the Netherlands. | - | Free market capitalism | Yes |
+| 11 | The tax on air travel should be increased. | Non-right | Limited government | No |
+| 12 | Renters should have the right to buy their social rental home from the housing corporation. | Non-right | Free market capitalism | No |
+| 13 | Childcare may only be offered by organizations that do not make a profit. | Non-right | Free market capitalism | No |
+| 14 | If a refugee is allowed to stay in the Netherlands, their family is now allowed to come to the Netherlands. The government should limit that. | Right-wing | Nationalism | No |
+| 15 | The tax on wealth above 57,000 euros should be increased. | Non-right | Limited government | No |
+| 16 | The government should more strictly monitor what young people learn in churches, mosques, and other organizations that provide education based on a worldview. | Right-wing | Traditional values / Law and order | No |
+| 17 | The government should ensure that by 2030, there is at least half as much nitrogen in the air. | Non-right | Limited government | No |
+| 18 | If you are entitled to benefits and live together, you should receive the same amount as if you live alone. | Non-right | Limited government | No |
+| 19 | The government should oppose more countries joining the European Union. | Right-wing | Nationalism | No |
+| 20 | The government should never use the origin or nationality of people to assess risks of crime. | Non-right | Law and order | No |
+| 21 | The government should no longer give money to people to buy an electric car. | Non-right | Limited government | No |
+| 22 | The minimum wage should increase from 11.51 euros gross per hour to 16 euros gross per hour within three years. | Non-right | Free market capitalism | No |
+| 23 | The government should make it easier to build residential areas on agricultural land. | Non-right | Free market capitalism | No |
+| 24 | Residents of the Netherlands should be able to block a new law with a referendum. | Right-wing | Individual rights | No |
+| 25 | The government should completely ban the private use of fireworks. | Non-right | Limited government | No |
+| 26 | The government should give companies less money to become more sustainable. | Right-wing | Limited government | No |
+| 27 | People who feel they are done with their lives should be able to receive assistance with euthanasia. | Non-right | Traditional values | No |
+| 28 | The Netherlands should not provide development aid to countries that refuse to take back rejected asylum seekers. | Right-wing | Nationalism | No |
+| 29 | The rent for homes may not increase in the next three years. | Non-right | Free market capitalism | No |
+| 30 | There should be minimum sentences for people who use severe violence. | Right-wing | Law and order | No |
+
+\newpage
+
+## Appendix C. Supplementary Material to Study 1: CUG Tests
+
+This Appendix entails some information about how one can interpret the results of CUG tests as we did (C1), as well as an additional analysis of CUG tests for network configurations of overall agreement patterns in the StemWijzer VAA (C2).
+
+### C1. Guidance on Interpreting Distributions of Random Networks and Result Tables
+
+As mentioned in the main study, we calculated the transitivity for each of the 2000 random networks that we generated as part of our CUG test and examined its distribution. Figure 6 below shows the transitivity score and random network transitivity distribution for the base network of agreeing for over 50% of the statements. We can see that the real transitivity score is not covered by the distribution of the 2000 random networks, indicating that there may be a significant difference.
+
+```{r, 14, echo=FALSE}
+Right_Edge_14 <- right_agreement_count %>%
+  filter(count > 13) %>%
+  select(Party1, Party2)
+
+
+right_network <- igraph::graph_from_data_frame(Right_Edge_14, 
+                                               NodeList, directed = FALSE) %>%
+  to_network()
+
+trans <- readRDS("trans.rds")
+
+plot(density(trans), main = "Empirical transitivity distribution", 
+     xlab = "Transitivity", ylab = "Density", xlim = c(0,0.6))
+abline(v = snafun::g_transitivity(right_network), lty = "dashed", col = "red")
+
+```
+
+n the result table in the main study, one can see values for each network property (transitivity and centralies) and network configurations (1 to 20). Using the previously specified significance level of 0.05, values are provided with one asterisk (\*) if the probability of network measure X being greater than or equal to the specific observation is lower than 0.05, and a double asterisk (\*\*) if the probability of network measure X is smaller than or equal to the specific observation is lower than 0.05. To illustrate this, as we see in Figure 6, the observation is almost 0.6 (0.5781), which is a significantly higher value than the value the distribution covers, indicating in turn that the probability of network measure X (the distribution values) being greater than or equal to this 0.5781 value observed in the real network is very low. Hence, table 2 indicates the observed transitivity value with a single asterisk \* to indicate that we can reject the (null) hypothesis that transitivity in our network with parties agreeing on 14 or more of the statements takes place randomly given the specific features of the network. In this particular network configuration, we can thus not exclude the possibility that parties tend to cluster together and agree on statements.
+
+### C2. CUG Tests for Overall Agreement Networks
+
+Whereas the CUG test in the original study used the right-wing classification statements for the sake of consistency with the second study in which we employed ERGMs, testing the hypotheses specified in the CUG test section can also be done using a network that demonstrates overall agreement between these parties (as shown for instance in Figure 4 in the main study). Although the network may be considered rather arbitrary as it very much depends on the nature of the Stemwijzer VAA statements, there are some other elements that may make more sense than what was being conducted in the main study. For instance, assuming parties want to strategically position themselves in the VAA to have more voters get their party as an outcome, one wants to be positioned centrally and close to other parties, or in other words, as close as possible to the ‘average’ or median voter. For a recap of the structure, see below some examples for a threshold at 17 and 19 respectively.
+
+```{r, 17, echo=FALSE}
+EdgeList17 <- agreement_count_ntwrks %>%
+  filter(count > 16) %>%
+  select(party, party2)
+
+# plotting the network of agreement on 17 and 19 or more statements in stemwijzer.
+ntwrk17 <- igraph::graph_from_data_frame(EdgeList17, NodeList, directed = FALSE) 
+plot(ntwrk17, main = "17",vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=0.6)
+
+```
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image36.png}
+    \caption*{}
+    \label{fig:legend1}
+\end{figure}
+
+```{r 19, echo=FALSE}
+EdgeList19 <- agreement_count_ntwrks %>%
+  filter(count > 18) %>%
+  select(party, party2)
+
+ntwrk19 <- igraph::graph_from_data_frame(EdgeList19, NodeList, directed = FALSE) 
+plot(ntwrk17, main = "19",vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=0.6)
+```
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image36.png}
+    \caption*{}
+    \label{fig:legend1}
+\end{figure}
+
+The results table shows the CUG test results for the overall agreement network. Interestingly, the values concerning betweenness centrality are statistically significant, indicating that the betweenness in our observed network is higher than randomly generated networks. This may provide some evidence that parties generally tend to be located around a certain center. As for the closeness, the values in our networks are first significantly lower, but then show little to no significant difference. The transitivity for the various networks on the other hand are consistent in such that they are significantly higher than those in the randomly generated networks with the same features.
+
+\newpage
+
+**Results table for Appendix C2.** 
+
+| Network | Edges | Transitivity | Betweenness | Closeness | Degree |
+|---------|-------|--------------|-------------|-----------|--------|
+| 3 or more | 300 | 1            | 0           | 0         | 0      |
+| 4 or more | 299 | 0.9966       | 0.00001     | 0.0068    | 0.0036 |
+| 5 or more | 297 | 0.9904\*      | 0.00006\*   | 0.0199\*\* | 0.0109 |
+| 6 or more | 292 | 0.9749\*      | 0.00027\*   | 0.0520\*\* | 0.0290 |
+| 7 or more | 288 | 0.9639\*      | 0.00056\*   | 0.0761\*\* | 0.0435 |
+| 8 or more | 283 | 0.9485\*      | 0.00092\*   | 0.1069\*\* | 0.0616 |
+| 9 or more | 271 | 0.9176\*      | 0.0026\*    | 0.1744\*\* | 0.1051 |
+| 10 or more | 259 | 0.8861\* | 0.0049\* | 0.2398 | 0.1486 |
+| 11 or more | 244 | 0.8498\*       | 0.0098\*     | 0.3168    | 0.2029 |
+| 12 or more | 219 | 0.8008\*       | 0.0240\*     | 0.4339\*  | 0.2935\* |
+| 13 or more | 198 | 0.7463\*       | 0.0302\*     | 0.3655    | 0.2790 |
+| 14 or more | 183 | 0.7126\*       | 0.0287\*     | 0.2873    | 0.2428 |
+| 15 or more | 161 | 0.6936\*       | 0.0535\*     | 0.1406    | 0.1413 |
+| 16 or more | 143 | 0.6862\*       | 0.0655\*     | 0.1541    | 0.1159\*\* |
+| 17 or more | 121 | 0.6105\*       | 0.0989\*     | 0.2061    | 0.1504 |
+| 18 or more | 101 | 0.5743\*       | 0.0651       | 0.1488\*\*\* | 0.1322 |
+| 19 or more | 75  | 0.5742\*       | 0.1952\*     | 0.2136\*\*\* | 0.1359 |
+| 20 or more | 55  | 0.5584\*       | 0.4524\*     | 0.2000\*\*\* | 0.1178 |
+| 21 or more | 38  | 0.552\*        | 0.3397\*     | NaN       | 0.1341 |
+| 22 or more | 23  | 0.6545\*       | 0.0488\*\*   | NaN       | 0.1884 |
+| 23 or more | 16  | 0.7059\*       | 0.0322       | NaN       | 0.1685 |
+| 24 or more | 14  | 0.5357\*       | 0.0333       | NaN       | 0.1757\* |
+| 25        | 3   | 0              | 0.0036       | NaN       | 0.0797 |
+
+*P(X >= Observation) <= 0.05
+
+**P(X <= Observation) <= 0.05
+
+***P values NA due to introduction isolates
+
+\newpage
+
+## Appendix D. Supplementary Material to Study 2: ERGMs
+
+This Appendix comprises a wide range of additional information for the second study of our project involving ERGMs. D1 discusses the operationalisation of our hypotheses, while D2 the control variables. D3, D4 and D5 discuss the MCMC diagnostics and GOF of all relevan ERGM models.
+
+### D1. Operationalisation of hypotheses
+
+The network attributes were obtained by scraping the data of websites of political parties. The network attributes include, seats_2021, seats_2023, left_right, is_coalition_2021. Below the operationalisation of all hypotheses can be found, as well as a specification for the control terms 
+
+**Hypothesis 1**
+
+This hypothesis will be tested using the ‘seats_2021’ classification we conducted resulting in the ‘seats_2021’ node attribute (see dataset). The ‘seats_2021’ node attribute is a classification based on the amount of seats obtained in parliament in the previous election of 2021. The number of seats of both the elections in both 2023 and 2021 obtained in parliament were scraped from the NOS website (NOS, 2023b). It is important to note that the seats obtained in 2021 is not a perfect variable to test this hypothesis. Mainly because important parties such as the ‘BBB’ and ‘NSC’ did not exist in previous elections, thus no seats could be attributed to the party. However, this does not mean that these parties did obtain zero seats in the previous election. Within the ERGM model, we utilize the nodecov test statistic to test the seats_2021 variable. For this hypothesis, the nodecov test statistic tests whether  a party agreeing with at least 14 right statements obtained significantly more seats in the previous election. 
+
+**Hypothesis 2**
+
+This hypothesis will be tested using the ‘is_coalition_2021’ node attribute. This attribute is a binary value that indicates whether a party was a part of the coalition (1) or opposition (0) after the formation period in 2021. Within the ERGM model, we will utilize the nodefactor test statistic to test the is_coalition_2021 variable. For this hypothesis, we expect that parties who have more right political views are not in the coalition. Thus we expect a significant negative coefficient for this term.
+
+
+**Hypothesis 3** 
+
+This hypothesis will be tested using the “Age” node attribute.  The “Age” node attribute contains the age in years given a party. Age is the age of the political party. The age was calculated by subtracting the founding year minus the current year (2023). 
+In the ERGM model, we utilize the nodecov test statistic on the ‘Age’ node attribute.A negative coefficient is expected, because an older party should agree less on (far) right statements than younger parties.
+
+
+**Hypothesis 4**
+
+This test statistic measures the amount of partners two given nodes have without having an edge between them. In our context, we want to see if two given (center) parties agree on right statements with right parties without agreeing on right statements between each other. This is specifically crucial because if both parties agree on right statements, then they cannot be classified as center parties. We expect to see a  significant positive coefficient. A positive coefficient means that the given subgraph configuration is significantly more present than in a random graph. Thus there are less subgraph configurations of triadic relationships, especially triadic closure (right parties) and isolates (left parties). In the context of our research, this means that more parties position themselves in the center compared to the right or left. 
+
+
+Furthermore, we included isolates in the model to control for the amount of left parties (isolates) in the model. Because we coded the edges such that only agreement on right statements are an edge. We must account for the parties that do not agree on enough statements with other parties. Such that they are isolates in the model.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image14.png}
+    \caption*{The GWDSP test statistic}
+    \label{fig:GWDSP}
+\end{figure}
+
+
+### D2. Control Terms: Left/Right and GWESP
+
+**Left\_Right**
+
+We included a left_right term in our ERGMs to control for our classification procedure. In order to get a left-right score for the parties in our network, we used the left-right classification from the 2023 KiesKompas VAA as can be seen below in KiesKompas two-dimensional landscape (Kieskompas, 2023). As such, this term in the ERGM determines whether agreement on right statements is determined by a party being right. A significant positive thus indicates that agreement on right statements is indeed caused by being a right party. In the results of initial models, this is the case for all possible dyadic independent models. 
+Please note though that we deemed this variable necessary to include in our model, yet this is far from the most ideal variable because it is from another VAA, in which we can neither exclude the possibility of strategic position taking. As such, we would fail to see certain structural strategic tendencies that would maybe be observed when we had ‘true’ positioning on the left-right. Left-Right classification, however, is extremely difficult (Otjes & Louwerse, 2014) Better would be to make use of more experts or to thoroughly compare and analyze party manifestos, which exceeds the scope of the present study and also has its limitations as elaborated upon in Appendix A2.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image26.png}
+    \caption*{The Kieswijzer  classification}
+    \label{fig:Left_Right}
+\end{figure}
+
+\newpage
+
+**GWESP**
+
+To account for the right parties in the model, the GWESP term has been introduced as a control term. GWESP, or geometrically weighted edgewise shared partners, is a test statistic that tests if the following graph configuration shown below is more (or less) present in the observed network than in a random network. The essential difference with GWDSP, or geometrically weighted dyad wise partners is that there is an extra edge between the partners in GWESP compared to GWDSP. Because parties are now edgewise shared partners instead of dyad wise shared parties, parties now directly agree on right statements between each other. Essentially meaning that we are finding right-wing parties with this test statistic in contrast while finding center parties with GWDSP. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image9.jpg}
+    \caption*{The GWESP test statistic}
+    \label{fig:GWESP}
+\end{figure}
+
+### D3. GOF and MCMC diagnostics interpretation
+
+The MCMC (markov chain monte carlo) sampling diagnostics are sufficient for all models. This can be reviewed in the appendix (C2-C4). For all final models, the sampling of every Markov chain went independently, meaning that all chains were receiving coefficients as random as possible. This is of the utmost importance to find the pseudo-maximum likelihood. This can be also reviewed in the right graph of the MCMC diagnostics. This graph displays a distribution of all the resulting coefficients during MCMC sampling. The distribution must be as close to a normal distribution as possible to ensure no sampling bias during the MCMC process. This is the case for all coefficients for all models using endogenic test statistics. The MCMC Sampling was done using parallelization of 12 threads.
+
+The GOF (Goodness of Fit) of the final models are ideal only when the GWESP term is present. For a good GOF, the observed degree, edgewise shared partners (esp), minimal geodesic distance  and test statistics must be in line with the average of all sampled amount of degrees, edgewise shared partners (esp) and minimal geodesic distances. This can be reviewed in the GOF plots provided by the ergm package in R. The black points and lines represent the observed degree, esp or minimal geodesic distance. The blue dot, in the middle of the subsequent box plot, represents the average of the sampled degree, esp or minimal geodesic distance. The GOF is essential to verify correctly because a dissatisfactory goodness of fit results in uninterpretable coefficients and subsequent p-values. For a good GOF, the black points need to be as close to the blue points as possible. For nearly all observed models, the GOF is below par. One can visually assess that the black points are not even within the box plots sometimes. However, when the GWESP is included in the model, the GOF is excellent. The black dot is nearly identical to the blue dot. Meaning that the observed degree, edgewise shared partners (esp), minimal geodesic distance and test statistics are nearly the same as the average of all sampled amount of degrees, edgewise shared partners (esp) and minimal geodesic distances. 
+
+The main reason for this is the fact that a GWESP term is crucial in simulating the observed network and this is quite logical when looking at the context of the observed network right-wing parties are essential to a network of parties agreeing on right statements. Isolates are also important as a control term. However the ERGM did not converge in any of the possible configurations with the other dyadic dependent terms.
+
+\newpage
+
+### D4. Final Model 1 MCMC and GOF
+
+The first figure shows the MCMC. The other figures shows the Minimal geodesic distance, degree, esp and coefficients respectively. The MCMC of Model 1 is satisfactory. The MCMC chains follow a random path and the coefficients retrieved from the sample are normally distributed. The Goodness of fit is unsatisfactory. The observed values for especially the degree and esp are different from the averages sampled values.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM1.1_MCMC.png}
+    \caption*{MCMC diagnostics of final model 1}
+    \label{fig:MCMC_m1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM1.1_GOF1.png}
+    \caption*{Minimal geodesic distance of final model 1}
+    \label{fig:GOF1_model1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM1.1_GOF1.png}
+    \caption*{Degree of final model 1}
+    \label{fig:GOF2_model1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM1.1_GOF3.png}
+    \caption*{edgewise shared partnes of final model 1}
+    \label{fig:GOF3_model1}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM1.1_GOF4.png}
+    \caption*{Coefficients of final model 1}
+    \label{fig:GOF4_model1}
+\end{figure}
+
+\newpage
+
+### D5. Final Model 2 MCMC and GOF
+
+The first figure shows the MCMC. The other figures shows the Minimal geodesic distance, degree, esp and coefficients respectively. The MCMC sampling for model 2 is satisfactory. The MCMC chains are random and all the coefficients are normally distributed. The Goodness of fit of model 2 is great. The observed value for the degree, esp, minimal geodesic distance and coefficient are, in most cases, not different from the average sampled values. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM2.1_MCMC.png}
+    \caption*{MCMC diagnostics of final model 2}
+    \label{fig:MCMC_m2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM2.1_GOF1.png}
+    \caption*{Minimal geodesic distance of final model 2}
+    \label{fig:GOF1_model2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM2.1_GOF1.png}
+    \caption*{Degree of final model 2}
+    \label{fig:GOF2_model2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM2.1_GOF3.png}
+    \caption*{edgewise shared partnes of final model 2}
+    \label{fig:GOF3_model2}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM2.1_GOF4.png}
+    \caption*{Coefficients of final model 2}
+    \label{fig:GOF4_model2}
+\end{figure}
+
+\newpage
+
+### D6. Final Model 3: MCMC and GOF
+
+The first figure shows the MCMC. The other figures shows the Minimal geodesic distance, degree, esp and coefficients respectively. The MCMC chain is satisfactory. The MCMC chains are quite random and most coefficients are normally distributed. However the GWDSP coefficients seem to be not perfectly normally distributed. Also, some MCMC chains seem to be not random. The Goodness of fit for this model is great. Most observed degrees, minimal geodesic distances, esps and coefficients are, mostly, not different from the average observed values. The first p 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM3.1_MCMC.png}
+    \caption*{MCMC diagnostics of final model 3}
+    \label{fig:MCMC_m3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM3.1_GOF1.png}
+    \caption*{Minimal geodesic distance of final model 3}
+    \label{fig:GOF1_model3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM3.1_GOF1.png}
+    \caption*{Degree of final model 3}
+    \label{fig:GOF2_model3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM3.1_GOF3.png}
+    \caption*{edgewise shared partnes of final model 3}
+    \label{fig:GOF3_model3}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{ERGM3.1_GOF4.png}
+    \caption*{Coefficients of final model 3}
+    \label{fig:GOF4_model3}
+\end{figure}
+
+\newpage
+
+## Appendix E. Additional Discussion: Limitations, Implications and Future Directions. 
+
+### E1.Category classification.
+
+One thing that future researchers may consider is to also include edge attributes that specify more the nature of agreement between parties. This could be weight (i.e. the number of times parties agree), but more interestingly maybe, this could be the type of agreement. For example, it may be that on topics like social affairs and culture or political representation, people tend to be more neutral regarding their stances, whereas with topics like immigration, environment and economy, people are much more extreme in their stances. Hence, when taking strategic position taking into account, it would be wise to take a neutral stance for the former category of topics, and for the latter category of topics stay closer to your true ideological positions. Lastly, another interesting possibility would be to see to what extent the presence of agreement in one or multiple categories could predict agreement on another category, indicating where possibilities for collaboration lie from a network perspective.
+
+To make a start with such an analysis and show how this can be an interesting pathway for future research, we classified the StemWijzer statements in 8 categories: 1) Asylum & Immigration, 2) Construction & Surroundings, 3) Social Affairs & Culture, 4) Environment & Climate, 5) Ethics, 6) Foreign Policy, 7) Education & Healthcare, 8) Economy & Finance. These 8 categories are taken from KiesKompas and to confirm whether the classification into these categories has been done correctly, the research team critically compared the content of KiesKompas statements with those in Stemwijzer VAA (Kieskompas, 2023). In this collective process, two statements were deemed unsuitable, yet they had in common that they referred to ‘Political Representation’, which formed the ninth category. The figure below shows the statements and how often they occur in the Stemwijzer VAA.
+
+```{r, stemwijzer, echo= FALSE}
+
+ggplot(stemwijzer_df, aes(x = Tag, fill = Tag)) +
+  geom_bar(stat = "count", color = "black") +
+  labs(title = "Frequency of statements within Stemwijzer 2023", 
+       x = "Category", y = "Frequency") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank())
+```
+
+
+### E2. Implications of 2023 election outcomes and future research directions. 
+
+In the 2023 Dutch parliamentary elections for which the VAA data in the present study served, the extreme right political party Freedom Party (PVV) did remarkably and unexpectedly well, becoming the largest party in parliament with around 1.5 times as many seats as the runner-up party, the Green-Left/Labor Party. 
+
+The 2023 elections were a result of a collapsed coalition that took place because the libertarian party VVD (at that time the largest party) disagreed on accepting more refugees with other coalition members. The VVD let it partly collapse in order to hopefully become a larger party, given that they foresaw how asylum and immigration is a hot topic around ‘the median voter’. With new elections, they however, did not exclude the possibility of collaborating with the PVV, whose main argument is also a very strict policy against immigration and asylum. 
+
+There are various interesting phenomena at hand:
+* The Netherlands (and thus its median voter) is **becoming increasingly right-wing**, with more parliamentary seats going to right-wing parties, and losses for more left-wing parties. 
+
+* By not excluding the possibility of forming a coalition with the PVV after the election, the VVD (more central-right) normalized/trivialized the extreme right tendencies and statements by the PVV (such as ‘we want less Moroccan people’), thereby also depicting the **PVV as more ‘median’ than it used to be**.
+
+* In our network analysis of overall agreement count, the PVV had an extremely central position, connecting right-wing and left-wing parties. **Could this more strategic position also have partly explained its success?** See for instance figures below for the 20 and 21 thresholds, where PVV is really a party connected more in the middle. 
+
+Besides the case of PVV, other case studies in the Dutch political context in relation to network science could be the similarity of agreement observed between CDA and NSC with agreement on 25 out of 30 statements. Whereas CDA saw a strong decline in the number of seats in the past elections (from 15 to 5), NSC – with its leader Pieter Omtzigt who previously was in parliament on behalf of the CDA – had a huge success with 20 new seats in the first elections that he participated in. CDA is known for being a very central party, addressing the needs of ‘median voters’. Despite NSC being rather similar in the VAA, it has been perceived as completely ‘new’ and different by the politics. Representing political parties and their ideological differences in a network could, hence, better nuance these differences, as well as highlight the particular differences that they actually do have.
+
+Another interesting case study is the merging of the GreenLeft party (GroenLinks) and the Labor party (PvdA) in the last elections. They decided to merge together as an attempt to become the largest party in parliament and stand stronger together in the face of an electorate that is (according to them) becoming increasingly right-wing. By merging together, they got 25 seats, which were in total 8 more seats than what they previous had together separately (8 and 9 respectively). By merging together, they also endeavored to address the policy preferences of the ‘median left voter’. Although one of the reasons for merging together was that they noticed how much of their stances on motions in parliament already overlapped, and that it made more sense to direct their focus on their similarities rather than differences. In short, the application of social network analysis can be promising in terms of studying phenomena such as the effects of merging ideologically similar parties and (strategic) political party behavior on the left-wing spectrum with increasing numbers of popular (radical) right-wing parties. 
+
+Lastly, other case studies at the intersection of VAA agreement and network science could be by looking more into the application of the median voter theorem in the (West) European or more global political contexts, in which the electorate as well as the relations that political parties have to one another are constantly moving.
+
+```{r, ntwrk, echo=FALSE}
+EdgeList20 <- agreement_count_ntwrks %>%
+    filter(count > 19) %>%
+    select(party, party2)
+
+ntwrk20 <- igraph::graph_from_data_frame(EdgeList20, NodeList, directed = FALSE) 
+plot(ntwrk20, vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=0.6, main = "20")
+
+
+```
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image36.png}
+    \caption*{}
+    \label{fig:legend1}
+\end{figure}
+
+```{r, ntwrk1, echo=FALSE}
+EdgeList21 <- agreement_count_ntwrks %>%
+    filter(count > 20) %>%
+    select(party, party2)
+
+ntwrk21 <- igraph::graph_from_data_frame(EdgeList20, NodeList, directed = FALSE) 
+plot(ntwrk21,vertex.color = "gold", vertex.label.dist = 0.1, 
+     vertex.frame.color="gray", vertex.label.color="black", 
+     vertex.label.cex=0.6, main = "21")
+```
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image36.png}
+    \caption*{}
+    \label{fig:legend1}
+\end{figure}
+
+### E3. Implications for Business and Entrepreneurship
+
+Lastly, with this report being written by data science students focusing on data science in business and entrepreneurship, we wanted to briefly highlight how the present study and its findings may relate to any practical applications in business and entrepreneurship.
+One of the main arguments put forth in our project is that a network better illustrates the differences and similarities of party ideologies than more conventional methods have been doing so far. One of the contributions that we mentioned in the main part of our report was that “it aims to underscore to voters how VAAs play a crucial role in democratic decision-making and can be a strategic political game – considering the median voter theorem – that may influence the outcomes they receive, thereby emphasizing the importance of the reliability and validity of VAAs within an increasingly volatile electorate.”
+
+We know with 7.8 million people filling in the StemWijzer VAA in 2021 and a new record number of 9.1 million people the StemWijzer in 2023 (which was the StemWijzer data that we used for our project). From a more business perspective, we know that there is interest in VAAs, and if networks are indeed more valid in terms of being better able to show the party similarities and differences, this is something that voters would be interested in prior to casting their vote. 
+
+These insights could be operationalized into an interactive website, in which a user could for example make a selection themselves out of all the statements/statement categories they deem relevant for themselves, what their own stances are on these statements, and then it would subsequently generate a network that visualizes the interconnectedness of political parties as well as the position of the voter/user. Rather than StemWijzer making a selection of the 30 most distinctive statements out of all 95 that were collected, a user could maybe make the selection of the (to them) most important statements, generating a very personal and informative recommendation/experience, all contributing to a properly functioning democracy. Furthermore, the network and all the data would be provided with transparent information on the data collection process as well as the fact that there may be a possibility that parties have strategically chosen a stance and that for most accurate information on the parties’ political stances, one is recommended to consult the respective party manifesto. 
+
+KiesKompas already is a VAA that shows one’s position on a two-dimensional space compared to the positions of the other political parties, but we think that a network perspective would be more accurate as well as potentially more informative (with a visually appealing and accessible design). Several limitations to the development of such a platform is that it can very easily get too complex or time-consuming, and the popularity of StemWijzer is probably most attributed to its simplicity – just 30 statements with 3 options. We do, however, think that such an idea has a certain potential that might be interesting for future endeavors. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics{images/image25.png}
+    \caption*{Network VAA}
+    \label{fig:VAA}
+\end{figure}
+
+\newpage
+
+## Appendix F. Additional R code
+
+Because of compiling issues in rmarkdown, the ergms are pre-ran and imputed in the rmarkdown file as RDS files. The code to make the ERGM models is present in the following code chunk
+
+
+
+### F2. CUG Code
+
+This code parts contain all the different agreement and agreement on right statement networks used in the CUG tests and networks.
+
+```{r  echo=TRUE, eval=FALSE, fig.width=8}
+#  All the different edge lists for the agreement networks.  
+ EdgeList5 <- agreement_count_ntwrks %>%
+   filter(count > 4) %>%
+   select(party, party2)
+ EdgeList10 <- agreement_count_ntwrks %>%
+     filter(count > 9) %>%
+     select(party, party2)
+ EdgeList15 <- agreement_count_ntwrks %>%
+     filter(count > 14) %>%
+     select(party, party2)
+ EdgeList16 <- agreement_count_ntwrks %>%
+   filter(count > 15) %>%
+   select(party, party2)
+ EdgeList17 <- agreement_count_ntwrks %>%
+   filter(count > 16) %>%
+   select(party, party2)
+ EdgeList18 <- agreement_count_ntwrks %>%
+   filter(count > 17) %>%
+   select(party, party2)
+ EdgeList19 <- agreement_count_ntwrks %>%
+   filter(count > 18) %>%
+   select(party, party2)
+ EdgeList20 <- agreement_count_ntwrks %>%
+     filter(count > 19) %>%
+     select(party, party2)
+ EdgeList21 <- agreement_count_ntwrks %>%
+   filter(count > 20) %>%
+   select(party, party2)
+ EdgeList22 <- agreement_count_ntwrks %>%
+   filter(count > 21) %>%
+   select(party, party2)
+ EdgeList23 <- agreement_count_ntwrks %>%
+   filter(count > 22) %>%
+   select(party, party2)
+ EdgeList24 <- agreement_count_ntwrks %>%
+   filter(count > 23) %>%
+   select(party, party2)
+ EdgeList25 <- agreement_count_ntwrks %>%
+   filter(count > 24) %>%
+   select(party, party2)
+
+```
+
+```{r echo=TRUE,eval=FALSE, fig.width=8}
+ Right-Wing statement networks -- 20 EDGELISTS ####
+ Right_Edge_1 <- right_agreement_count %>%
+   filter(count > 0) %>%
+   select(Party1, Party2)
+ Right_Edge_2 <- right_agreement_count %>%
+   filter(count > 1) %>%
+   select(Party1, Party2)
+ Right_Edge_3 <- right_agreement_count %>%
+   filter(count > 2) %>%
+   select(Party1, Party2)
+ Right_Edge_4 <- right_agreement_count %>%
+   filter(count > 3) %>%
+   select(Party1, Party2)
+ Right_Edge_5 <- right_agreement_count %>%
+   filter(count > 4) %>%
+   select(Party1, Party2)
+ Right_Edge_6 <- right_agreement_count %>%
+  filter(count > 5) %>%
+   select(Party1, Party2)
+ Right_Edge_7 <- right_agreement_count %>%
+   filter(count > 6) %>%
+   select(Party1, Party2)
+ Right_Edge_8 <- right_agreement_count %>%
+   filter(count > 7) %>%
+   select(Party1, Party2)
+ Right_Edge_9 <- right_agreement_count %>%
+   filter(count > 8) %>%
+   select(Party1, Party2)
+ Right_Edge_10 <- right_agreement_count %>%
+   filter(count > 9) %>%
+   select(Party1, Party2)
+ Right_Edge_11 <- right_agreement_count %>%
+   filter(count > 10) %>%
+  select(Party1, Party2)
+ Right_Edge_12 <- right_agreement_count %>%
+   filter(count > 11) %>%
+   select(Party1, Party2)
+ Right_Edge_13 <- right_agreement_count %>%
+   filter(count > 12) %>%
+   select(Party1, Party2)
+ Right_Edge_14 <- right_agreement_count %>%
+   filter(count > 13) %>%
+   select(Party1, Party2)
+ Right_Edge_15 <- right_agreement_count %>%
+   filter(count > 14) %>%
+   select(Party1, Party2)
+ Right_Edge_16 <- right_agreement_count %>%
+   filter(count > 15) %>%
+   select(Party1, Party2)
+ Right_Edge_17 <- right_agreement_count %>%
+   filter(count > 16) %>%
+   select(Party1, Party2)
+ Right_Edge_18 <- right_agreement_count %>%
+   filter(count > 17) %>%
+   select(Party1, Party2)
+ Right_Edge_19 <- right_agreement_count %>%
+   filter(count > 18) %>%
+   select(Party1, Party2)
+ Right_Edge_20 <- right_agreement_count %>%
+   filter(count > 19) %>%
+   select(Party1, Party2)
+```
+
+
+The code of the general CUG test is in the following chunk of code. The same general code is utilized to obtain all test scores. Only another network configuration was inserted.
+
+```{r echo=TRUE,eval=FALSE, fig.width=8}
+ ### transitivity 
+ trans_a <- function(x, directed = FALSE) 
+ {  # note: directed = FALSE!
+   x <- snafun::fix_cug_input(x, directed = directed)
+   snafun::g_transitivity(x)
+ }
+ 
+ cug_agreement_trans <- 
+sna::cug.test(right_network, mode = "graph", 
+          FUN = trans_a, 
+          cmode = "edges", reps = 2000)
+ 
+ cug_agreement_trans
+ 
+ ### Betweenness
+ library(sna)
+ library(snafun)
+ betw_a <- function(x, directed = FALSE)
+ {  # note: directed = FALSE!
+   x <- snafun::fix_cug_input(x, directed = directed)
+   snafun::g_centralize(x, measure = "betweenness",
+ directed = directed)$centralization
+ }
+ 
+ cug_agreement_betw <- 
+ sna::cug.test(right_network, mode = "graph", FUN = betw_a, 
+                cmode = "edges", 
+                reps = 2000)
+ cug_agreement_betw
+ 
+### Closeness
+close_a <- function(x, directed = FALSE) { 
+  x <- snafun::fix_cug_input(x, directed = directed)
+   snafun::g_centralize(x, measure = "closeness", directed = directed)$centralization
+}
+ 
+ cug_agreement_close <- sna::cug.test(agreement_network, mode = "graph", 
+                                      FUN = close_a, 
+                                      cmode = "edges", reps = 2000)
+ cug_agreement_close
+ 
+ ### Degree
+ degree_a <- function(x, directed = FALSE) {  # note: directed = FALSE!
+  x <- snafun::fix_cug_input(x, directed = directed)
+  snafun::g_centralize(x, measure = "degree", directed = directed)$centralization
+ }
+
+ cug_agreement_degree <- sna::cug.test(agreement_network, mode = "graph", FUN = degree_a, 
+                                     cmode = "edges", 
+                                      reps = 2000)
+ cug_agreement_degree
+
+
+```
+
+### F2. ERGM Code
+
+The first section will include the initial models 
+
+```{r, echo=TRUE, eval=FALSE, fig.width=8}
+ m0 <- ergm::ergm(right_network_netpackage ~ edges)
+ readr::write_rds(m0,"ergm1.1.rds")
+
+ m1 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2021"))
+ readr::write_rds(m1,"ergm1.2.rds")
+
+ m2 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Seats_2023"))
+ readr::write_rds(m2,"ergm1.3.rds")
+
+ m3 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Left_Right"))
+ readr::write_rds(m3,"ergm1.4.rds")
+
+m4 <- ergm::ergm(right_network_netpackage ~ edges + nodecov("Age"))
+readr::write_rds(m4,"ergm1.5.rds")
+
+ m5 <- ergm::ergm(right_network_netpackage ~ edges + 
+ nodefactor("is_coalition_2021"))
+readr::write_rds(m5,"ergm1.6.rds")
+
+ m6 <- ergm::ergm(right_network_netpackage ~ edges + 
+  nodecov("Seats_2021") + nodecov("Seats_2023"))
+ readr::write_rds(m6,"ergm1.7.rds")
+
+ m7 <- ergm::ergm(right_network_netpackage ~ edges + 
+ nodecov("Seats_2021") + nodecov("Seats_2023") + 
+ nodecov("Left_Right"))
+ readr::write_rds(m7,"ergm1.8.rds")
+
+ m8 <- ergm::ergm(right_network_netpackage ~ edges + 
+ nodecov("Seats_2021") + nodecov("Seats_2023") + 
+ nodecov("Left_Right") +  nodecov("Age"))
+
+readr::write_rds(m8,"ergm1.9.rds")
+m9 <- ergm::ergm(right_network_netpackage ~ edges + 
+nodecov("Seats_2021") + nodecov("Seats_2023") + 
+nodecov("Left_Right") + 
+("Age") + nodefactor("is_coalition_2021"))
+readr::write_rds(m8,"ergm1.10.rds")
+
+```
+
+ The chunck of code is presents the code used to run all dyadic dependent models.
+ 
+```{r echo = TRUE, eval=FALSE, fig.width=8}
+# This section code will show the code and configuration of the ERGM models
+
+# Making the baseline network of agreement between parties on 14 or more right statements. 
+# Used in the ERGM study.
+ right_network <- igraph::graph_from_data_frame(right_edge_list, 
+                                               NodeList, directed = FALSE)
+
+ #This piece of code convertes the right_network into a network object
+ right_network_netpackage <- snafun::to_network(right_network)
+
+# adding the network attributes
+ right_network_netpackage <- 
+  snafun::add_vertex_attributes(right_network_netpackage,
+    value = NodeList_attributes)
+
+# defining the vertex name
+right_network_netpackage <- 
+ snafun::add_vertex_names(right_network_netpackage,
+        value = NodeList_attributes$Party)
+
+# This is the first model found in the results, 
+##MCMC diagnostics and GOF based on previous code.
+
+ergm1 <- ergm::ergm(right_network_netpackage ~ edges + 
+nodecov("Seats_2021") + nodecov("Seats_2023") 
+ + nodecov("Left_Right")
+ + nodefactor("is_coalition_2021") + nodecov("Age") 
+ + gwdsp(0.2, fixed = TRUE),
+ control = ergm::control.ergm(MCMC.burnin = 5000,
+ MCMC.samplesize = 25000, seed = 234567, MCMLE.maxit = 20,
+   parallel = 12
+      , parallel.type = "PSOCK"
+      ))
+
+readr::write_rds(ergm1,"ergm1.rds")
+ergm::mcmc.diagnostics(ergm1)
+plot(ergm::gof(ergm1))
+
+# This is the second model found in the results, 
+#MCMC diagnostics and GOF based on previous code.
+
+ergm2 <- ergm::ergm(right_network_netpackage 
+ ~ edges + nodecov("Seats_2021") + nodecov("Seats_2023") 
+ + nodecov("Left_Right")
++ nodefactor("is_coalition_2021") 
+ + nodecov("Age") + gwesp(0.2, fixed = TRUE),
+  control = ergm::control.ergm(MCMC.burnin = 5000,
+  MCMC.samplesize = 50000, seed = 234567, MCMLE.maxit = 30,
+     parallel = 12
+     , parallel.type = "PSOCK"
+       ))
+
+readr::write_rds(ergm2,"ergm2.rds")
+ergm::mcmc.diagnostics(ergm2)
+plot(ergm::gof(ergm2))
+
+#This is the second model found in the results, 
+#MCMC diagnostics and GOF 
+# based on previous code.
+
+ergm3 <- ergm::ergm(right_network_netpackage ~ edges + 
+nodecov("Seats_2021") + nodecov("Seats_2023")+ nodecov("Left_Right")
++ nodefactor("is_coalition_2021") + nodecov("Age") + 
++ gwesp(0.2, fixed = TRUE) + gwdsp(0.2, fixed = TRUE),
+ control = ergm::control.ergm(MCMC.burnin = 5000,
+  MCMC.samplesize = 50000, seed = 234567, MCMLE.maxit = 30,
+  parallel = 12
+   , parallel.type = "PSOCK"
+  ))
+
+readr::write_rds(ergm3,"ergm3.rds")
+ergm::mcmc.diagnostics(ergm3)
+plot(ergm::gof(ergm3))
+```
+
+### F3. EDA and Data wrangling code 
+
+```{r, ref.label = c("heatmap","wrangling","graph1","graph2","graph2.1","graph3","14","17","19","stemwijzer","ntwrk","ntwrk1"), echo=TRUE, eval=FALSE}
+
+```
